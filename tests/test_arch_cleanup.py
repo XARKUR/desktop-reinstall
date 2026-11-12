@@ -95,7 +95,7 @@ class ArchCleanupTests(unittest.TestCase):
              contextlib.redirect_stdout(io.StringIO()):
             cleanup.main([])
 
-    def test_arch_controller_rejects_unimplemented_modules_and_delegates_cleanup(self):
+    def test_arch_controller_accepts_full_module_set_and_delegates_cleanup(self):
         common = installer.load(ROOT / 'profiles/common.json')
         obj = installer.Installer(self.profile, common, ['cleanup'], ROOT / 'profiles/arch.json')
         with patch.object(installer.platform, 'freedesktop_os_release', return_value={'ID':'arch'}), \
@@ -103,18 +103,18 @@ class ArchCleanupTests(unittest.TestCase):
              patch.object(installer.os, 'geteuid', return_value=1000), \
              patch.object(installer.shutil, 'which', return_value='/fixture/command'):
             obj.preflight()
-            obj.selected = ['cleanup','tools']
-            with self.assertRaisesRegex(ValueError, '只接入 cleanup'):
-                obj.preflight()
+            obj.selected = ['cleanup','docker','fnm','uv']
+            obj.preflight()
         with patch.object(obj, 'run') as run:
             obj.execute('cleanup')
         self.assertEqual(run.call_args.args[0][2], ROOT / 'modules/cleanup-arch.py')
 
-    def test_arch_default_selects_cleanup_and_locale_without_executing_commands(self):
+    def test_arch_default_selects_full_workflow_without_executing_commands(self):
         with patch.object(installer.platform, 'freedesktop_os_release', return_value={'ID':'arch'}), \
              patch('subprocess.run', side_effect=AssertionError('mutation')), \
              contextlib.redirect_stdout(io.StringIO()) as output:
             self.assertEqual(installer.main([]), 0)
         self.assertIn('cleanup', output.getvalue())
         self.assertIn('locale', output.getvalue())
-        self.assertNotIn('docker ', output.getvalue())
+        self.assertIn('docker', output.getvalue())
+        self.assertIn('appearance', output.getvalue())

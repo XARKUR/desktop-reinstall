@@ -159,6 +159,7 @@ class InstallerTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp, patch.dict(os.environ, XDG_STATE_HOME=temp), \
              patch.object(obj, 'preflight'), patch.object(obj, 'prepare'), \
              patch.object(obj, 'ensure_packages'), patch.object(obj, 'run') as run, \
+             patch.object(obj, 'configure_project'), \
              patch.object(obj, 'locale') as locale, patch.object(obj, 'extension') as extension, \
              contextlib.redirect_stdout(io.StringIO()):
             obj.apply()

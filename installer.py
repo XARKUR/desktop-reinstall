@@ -15,7 +15,7 @@ import subprocess
 import sys
 import tempfile
 
-from sources import fetch_project
+from sources import fetch_project, fetch_extension
 
 ROOT = Path(__file__).resolve().parent
 MODULES = {
@@ -36,7 +36,7 @@ GROUPS = {'environment': ['docker', 'fnm', 'uv'], 'apps': ['tools', 'weather'],
           'extensions': ['lunar', 'monitor', 'dock', 'appindicator']}
 PROJECTS = {'appearance': 'gnome-appearance', 'weather': 'Gnome Weather',
             'lunar': 'Gnome Lunar', 'monitor': 'Gnome Monitor'}
-GUI_MODULES = {'locale', 'appearance', 'weather', 'lunar', 'monitor', 'dock', 'appindicator'}
+GUI_MODULES = {'tools', 'locale', 'appearance', 'weather', 'lunar', 'monitor', 'dock', 'appindicator'}
 TOOL_PACKAGES = ['gnome-calendar', 'gnome-clocks', 'gnome-tweaks', 'gnome-shell-extension-prefs',
                  'nautilus', 'gnome-terminal', 'gnome-calculator', 'gnome-text-editor',
                  'gnome-system-monitor', 'gnome-disk-utility', 'file-roller', 'loupe', 'evince']
@@ -46,6 +46,13 @@ PROJECT_PACKAGES = {
                 'gir1.2-gweather-4.0', 'gir1.2-soup-3.0', 'gir1.2-geoclue-2.0'],
     'lunar': ['gjs', 'libglib2.0-bin'],
     'monitor': ['gjs', 'libglib2.0-bin', 'gnome-system-monitor', 'pciutils', 'pci.ids'],
+}
+ARCH_PROJECT_PACKAGES = {
+    'appearance': ['gjs', 'glib2', 'gtk3', 'sassc', 'gnome-themes-extra'],
+    'weather': ['glibc', 'noto-fonts-cjk', 'noto-fonts-emoji', 'gjs', 'glib2', 'gtk4',
+                'libadwaita', 'libgweather-4', 'libsoup3', 'geoclue'],
+    'lunar': ['gjs', 'glib2'],
+    'monitor': ['gjs', 'glib2', 'gnome-system-monitor', 'pciutils', 'hwdata'],
 }
 
 
@@ -108,12 +115,10 @@ class Installer:
         if arch:
             if release.get('ID') != 'arch' or platform.machine() != 'x86_64':
                 raise ValueError('Arch 配置需要在 Arch Linux x86_64 上执行。')
-            if set(self.selected) - {'cleanup', 'locale'}:
-                raise ValueError('Arch 当前只接入 cleanup、locale；请用 --only 选择。')
         elif (release.get('ID') != 'debian' or release.get('VERSION_ID') != '13'
               or platform.machine() != 'x86_64' or self.edition.get('os_id') != 'debian'
               or self.edition.get('version_id') != '13'):
-            raise ValueError('实际执行适用于 Debian 13 x86_64，或 Arch 的 cleanup、locale 模块。')
+            raise ValueError('实际执行适用于 Debian 13 或 Arch Linux x86_64。')
         for name in (['sudo', 'pacman'] if arch else ['sudo', 'apt-get', 'dpkg-query']):
             if not shutil.which(name):
                 raise ValueError('缺少系统命令：' + name)
@@ -137,9 +142,10 @@ class Installer:
                 raise ValueError(name + ' 版本与 sources.lock.json 不一致，请同时更新来源与校验值。')
         if 'docker' in self.selected:
             config = self.common['environment_settings']['docker']
-            if config['source'] != 'official-stable' or not all(isinstance(config[key], bool)
+            source = config.get('arch_source') if arch else config['source']
+            if source != ('official-repository' if arch else 'official-stable') or not all(isinstance(config[key], bool)
                     for key in ['add_user_to_group', 'compose', 'buildx']):
-                raise ValueError('Docker 预设需要官方稳定源及布尔类型的组件开关。')
+                raise ValueError('Docker 预设需要对应系统的官方来源及布尔类型的组件开关。')
 
     def read(self, args):
         return subprocess.check_output(list(map(str, args)), text=True, env=self.environment)
@@ -178,9 +184,11 @@ class Installer:
                 self.apt_updated = True
             self.run(['sudo', 'apt-get', 'install', '-y', '--no-install-recommends', *missing])
 
-    def setting(self, schema, key, value):
+    def setting(self, schema, key, value, schema_dir=None):
         identity = schema + ' ' + key
         args = ['gsettings']
+        if schema_dir is not None:
+            args += ['--schemadir', str(schema_dir)]
         if identity not in self.settings_before:
             self.settings_before[identity] = self.read(args + ['get', schema, key]).strip()
             self.save()
@@ -199,6 +207,11 @@ class Installer:
             if not (source / entry).is_file():
                 raise ValueError('项目入口缺失：' + name)
             self.prepared[module] = source
+        if 'dock' in self.selected and self.edition.get('os_id') == 'arch':
+            config = self.common['system_extensions']['Dash to Dock']
+            major = re.search(r'GNOME Shell\s+(\d+)', self.read(['gnome-shell', '--version'])).group(1)
+            self.prepared['dock'] = fetch_extension(config['arch'], config['uuid'], major,
+                Path(temp) / 'dock', cache)
 
     def locale(self):
         config = self.edition['localization']
@@ -218,11 +231,37 @@ class Installer:
     def extension(self, module):
         name = 'Dash to Dock' if module == 'dock' else 'AppIndicator and KStatusNotifierItem Support'
         config = self.common['system_extensions'][name]
-        self.ensure_packages([config['debian13']])
+        edition = 'arch' if self.edition.get('os_id') == 'arch' else 'debian13'
         uuid = config['uuid']
         if isinstance(uuid, dict):
-            uuid = uuid['debian13']
-        metadata = Path('/usr/share/gnome-shell/extensions') / uuid / 'metadata.json'
+            uuid = uuid[edition]
+        schema_dir = None
+        if isinstance(config[edition], dict):
+            source = self.prepared[module]
+            self.run(['glib-compile-schemas', '--strict', source / 'schemas'])
+            data = Path(os.environ.get('XDG_DATA_HOME', str(Path.home() / '.local/share')))
+            target = data / 'gnome-shell/extensions' / uuid
+            if target.is_symlink() or (target.exists() and load(target / 'metadata.json').get('uuid') != uuid):
+                raise ValueError('已有用户扩展目录不属于所选扩展：' + uuid)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            if target.exists():
+                backup = self.state / 'extensions' / uuid
+                backup.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copytree(target, backup, symlinks=True)
+            with tempfile.TemporaryDirectory(prefix='.desktop-extension-', dir=target.parent) as temp:
+                staged, previous = Path(temp) / 'new', Path(temp) / 'previous'
+                shutil.copytree(source, staged)
+                if target.exists(): target.rename(previous)
+                try:
+                    staged.rename(target)
+                except BaseException:
+                    if previous.exists(): previous.rename(target)
+                    raise
+            metadata = target / 'metadata.json'
+            schema_dir = target / 'schemas'
+        else:
+            self.ensure_packages([config[edition]])
+            metadata = Path('/usr/share/gnome-shell/extensions') / uuid / 'metadata.json'
         info = load(metadata)
         version = self.read(['gnome-shell', '--version'])
         major = re.search(r'GNOME Shell\s+(\d+)', version).group(1)
@@ -236,8 +275,33 @@ class Installer:
         if uuid in disabled:
             self.setting(schema, 'disabled-extensions', repr([item for item in disabled if item != uuid]))
         for key, value in config.get('settings', {}).items():
-            self.setting('org.gnome.shell.extensions.dash-to-dock', key,
-                         str(value).lower() if isinstance(value, bool) else repr(value))
+            args = ['org.gnome.shell.extensions.dash-to-dock', key,
+                    str(value).lower() if isinstance(value, bool) else repr(value)]
+            if schema_dir is not None:
+                self.setting(*args, schema_dir=schema_dir)
+            else:
+                self.setting(*args)
+
+    def configure_project(self, module, first_install):
+        config = self.common['projects'][PROJECTS[module]]
+        if not config.get('uuid'):
+            return
+        data = Path(os.environ.get('XDG_DATA_HOME', str(Path.home() / '.local/share')))
+        schema_dir = data / 'gnome-shell/extensions' / config['uuid'] / 'schemas'
+        if first_install:
+            for key, value in config.get('initial_settings', {}).items():
+                self.setting(config['schema'], key, value, schema_dir=schema_dir)
+        if module == 'monitor' and self.edition.get('monitor_auto_gpu'):
+            current = ast.literal_eval(self.read(['gsettings', '--schemadir', schema_dir,
+                'get', config['schema'], 'gpudeviceslist']).replace('@as ', ''))
+            if not current:
+                detected = json.loads(self.read(['gjs', '-m', ROOT / 'modules/detect-monitor-gpus.mjs', schema_dir.parent]))
+                if detected['devices']:
+                    for key, values in [('gpudeviceslist', detected['devices']),
+                                        ('thermalgputemperaturedeviceslist', detected['thermal'])]:
+                        self.setting(config['schema'], key, repr([json.dumps(item) for item in values]), schema_dir=schema_dir)
+                    self.setting(config['schema'], 'gpustatus', 'true', schema_dir=schema_dir)
+                    self.setting(config['schema'], 'thermalgputemperaturestatus', 'true' if detected['thermal'] else 'false', schema_dir=schema_dir)
 
     def execute(self, module):
         if module == 'cleanup':
@@ -247,17 +311,20 @@ class Installer:
             self.locale()
         elif module == 'tools':
             self.ensure_packages(self.edition.get('tool_packages', TOOL_PACKAGES))
+            for schema, values in self.edition.get('desktop_settings', {}).items():
+                for key, value in values.items():
+                    self.setting(schema, key, value)
         elif module == 'docker':
             config = self.common['environment_settings']['docker']
-            if config['source'] != 'official-stable':
-                raise ValueError('Docker 模块使用官方稳定源。')
-            self.run(['sudo', 'bash', ROOT / 'environment/install-docker-debian.sh', pwd.getpwuid(os.getuid()).pw_name,
+            edition = 'arch' if self.edition.get('os_id') == 'arch' else 'debian'
+            self.run(['sudo', 'bash', ROOT / 'environment' / ('install-docker-' + edition + '.sh'), pwd.getpwuid(os.getuid()).pw_name,
                       str(config['add_user_to_group']).lower(), str(config['compose']).lower(), str(config['buildx']).lower()])
         elif module in ('fnm', 'uv'):
             self.ensure_packages(['curl', 'ca-certificates'])
             self.run([sys.executable, ROOT / 'environment/install-user-tools.py', '--only', module])
         elif module in PROJECTS:
-            self.ensure_packages(PROJECT_PACKAGES[module])
+            packages = ARCH_PROJECT_PACKAGES if self.edition.get('os_id') == 'arch' else PROJECT_PACKAGES
+            self.ensure_packages(packages[module])
             if module == 'weather' and 'locale' not in self.selected:
                 available = self.read(['locale', '-a']).lower().replace('-', '').splitlines()
                 if 'zh_cn.utf8' not in available:
@@ -269,7 +336,11 @@ class Installer:
             argv = [sys.executable, source / entry, 'setup']
             if module == 'appearance':
                 argv.append('--skip-deps')
+            config = self.common['projects'][PROJECTS[module]]
+            data = Path(os.environ.get('XDG_DATA_HOME', str(Path.home() / '.local/share')))
+            first_install = not (data / 'gnome-shell/extensions' / config.get('uuid', 'not-an-extension')).exists()
             self.run(argv)
+            self.configure_project(module, first_install)
         else:
             self.extension(module)
 
@@ -331,10 +402,7 @@ def main(argv=None):
         name = 'arch' if platform.freedesktop_os_release().get('ID') == 'arch' else 'debian13'
         profile = ROOT / 'profiles' / (name + '.json')
     edition, common = load(profile), load(args.common)
-    only = 'cleanup,locale' if edition.get('os_id') == 'arch' and args.only is None else args.only
-    selected = select_modules(common, only, args.skip)
-    if edition.get('os_id') == 'arch':
-        print('Arch 当前支持 cleanup、locale，其他安装模块尚未接入。')
+    selected = select_modules(common, args.only, args.skip)
     for module in selected:
         print(module.ljust(14) + MODULES[module])
         if module in PROJECTS:

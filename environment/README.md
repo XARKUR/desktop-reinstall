@@ -1,13 +1,19 @@
-# Debian 13 开发环境
+# 开发环境（Debian 13 / Arch）
 
-以普通桌面用户运行，安装 Docker Engine、Compose、Buildx、fnm 和 uv。
+以普通桌面用户运行，安装 Docker Engine、Compose、Buildx、fnm 和 uv。统一入口在项目根目录：
+
+```sh
+./install.sh --apply --only environment
+```
+
+下面 `environment/install.sh` 是原有 Debian 独立入口；Arch 请使用上面的统一入口。
 
 ```sh
 ./install.sh --plan
 ./install.sh --apply
 ```
 
-Docker 通过官方 Debian trixie 软件源安装并设置开机启动，当前用户加入 docker 组。该组具有管理宿主机的权限，现有桌面会话在注销后重新登录可获得新组权限。遇到已有 Docker 发行版包或 containerd/runc 冲突时会先停止，供使用者检查已有环境。
+Debian 的 Docker 通过官方 trixie 软件源安装；Arch 使用发行版官方仓库的 docker、docker-compose、docker-buildx。两者均设置开机启动，当前用户加入 docker 组。该组具有管理宿主机的权限，现有桌面会话在注销后重新登录可获得新组权限。遇到已有 Docker 发行版包或 containerd/runc 冲突时会先停止，供使用者检查已有环境。
 
 fnm 与 uv/uvx 安装到 `~/.local/bin/`，Bash 会加载用户 PATH 与 `fnm env --use-on-cd --shell bash`。fnm 只安装管理器，具体 Node.js 版本由各项目选择。uv 使用项目虚拟环境；其他 Python 版本可按项目需要用 uv 下载管理。
 

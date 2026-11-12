@@ -56,3 +56,24 @@ class SourceTests(unittest.TestCase):
         with patch.object(Path,'mkdir',side_effect=AssertionError('write')):
             with self.assertRaises(ValueError):
                 fetch_project({'repository':'https://wrong.example/repo','commit':'main'},Path('/fixture'),Path('/cache'))
+
+
+class ExtensionSourceTests(unittest.TestCase):
+    def test_extension_is_checksum_pinned_and_rejects_paths_or_incompatible_shell(self):
+        import hashlib,json,zipfile
+        from sources import fetch_extension
+        uuid='test@example.org'
+        for member,versions,valid in [('extension.js',['51'],True),('../escape',['51'],False),('extension.js',['48'],False)]:
+            output=io.BytesIO()
+            with zipfile.ZipFile(output,'w') as archive:
+                archive.writestr('metadata.json',json.dumps({'uuid':uuid,'version':1,'shell-version':versions}))
+                archive.writestr(member,'fixture')
+            data=output.getvalue()
+            config={'url':'https://extensions.gnome.org/download-extension/test.zip?version_tag=1','version':1,'sha256':hashlib.sha256(data).hexdigest()}
+            with tempfile.TemporaryDirectory() as temp, patch('urllib.request.urlopen',return_value=io.BytesIO(data)):
+                root=Path(temp)
+                if valid:
+                    self.assertEqual(fetch_extension(config,uuid,'51',root/'source',root/'cache'),root/'source')
+                    self.assertTrue((root/'source/extension.js').is_file())
+                else:
+                    with self.assertRaises(ValueError):fetch_extension(config,uuid,'51',root/'source',root/'cache')

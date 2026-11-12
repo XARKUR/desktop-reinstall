@@ -1,7 +1,7 @@
 {
-  "scope": "Debian 13 x86_64 GNOME modular installer and Arch Linux x86_64 cleanup/localization",
+  "scope": "Debian 13 and Arch Linux x86_64 modular GNOME desktop workflow",
   "automated_tests": {
-    "passed": 31,
+    "passed": 36,
     "system_operations": "mocked; locale file writes redirected to temporary directory",
     "target_python": "Tests also passed on Arch Python 3.14.10."
   },
@@ -15,7 +15,7 @@
     "projects": {
       "gnome-appearance": {
         "repository": "XARKUR/gnome-appearance",
-        "commit": "c31e5a4181cf67ba3f9ac15e7d5d9a1b5322d4b8",
+        "commit": "7ed34d987fa3625b45c7d9417b3d054261eb8c1c",
         "includes": [
           "Orchis-Dark",
           "Tela-dark",
@@ -32,14 +32,34 @@
           "顶栏资源监控",
           "AMD / Intel 自动型号识别",
           "NVIDIA 指标（需要 nvidia-smi）"
-        ]
+        ],
+        "uuid": "resource-monitor@system.local",
+        "schema": "org.gnome.shell.extensions.system-resource-monitor",
+        "initial_settings": {
+          "cpustatus": "true",
+          "ramstatus": "true",
+          "netethstatus": "true",
+          "gpudisplaydevicename": "true"
+        }
       },
       "Gnome Lunar": {
         "repository": "XARKUR/gnome-lunar",
         "commit": "c450a528d6cb03dfd0abcde554d5318e5f6f512b",
         "includes": [
           "顶栏和月历农历"
-        ]
+        ],
+        "uuid": "lunar-calendar@system.local",
+        "schema": "org.gnome.shell.extensions.system-lunar-calendar",
+        "initial_settings": {
+          "show-date": "true",
+          "show-time": "true",
+          "show-calendar": "true",
+          "show-details": "true",
+          "show-ganzhi": "true",
+          "show-festivals": "true",
+          "show-solar-terms": "true",
+          "label-size": "'normal'"
+        }
       },
       "Gnome Weather": {
         "repository": "XARKUR/gnome-weather-local",
@@ -47,7 +67,9 @@
         "includes": [
           "天气应用",
           "日历天气卡片"
-        ]
+        ],
+        "uuid": "weather@system.local",
+        "schema": "org.gnome.Weather.Local"
       }
     }
   },
@@ -158,5 +180,67 @@
     "user_failed_units": 0,
     "calendar_and_clocks_retained": true,
     "physical_typing_confirmation": "User confirmed Intelligent Pinyin can input Chinese after relogin."
+  },
+  "arch_full_execution": {
+    "status": "READY",
+    "execution": "Fresh Arch installation completed in stages: cleanup, locale, then remaining modules.",
+    "gnome_version": "51.1",
+    "extensions_active": [
+      "User Themes",
+      "Gnome Weather",
+      "Gnome Lunar",
+      "Gnome Monitor",
+      "Dash to Dock 110",
+      "AppIndicator"
+    ],
+    "theme": "Orchis-Dark",
+    "activities_logo": "arch",
+    "icons": {
+      "theme": "Tela-dark",
+      "checked": 31,
+      "missing": []
+    },
+    "cursor": "Breeze 24",
+    "appearance_compatibility": {
+      "cursor_alias_valid": true,
+      "new_cursor_warnings": false,
+      "new_invalid_length_warnings": false,
+      "activities_indicator_overlap_fixed": true
+    },
+    "appearance_project_tests_passed": 41,
+    "weather": {
+      "valid": true,
+      "hourlySamples": 168,
+      "forecastDays": 7,
+      "temperatureUnitsConsistent": true,
+      "networkError": null
+    },
+    "runtime": {
+      "docker_version": "Docker version 29.9.3, build 5457199aa5",
+      "compose_version": "5.7.1",
+      "buildx_version": "github.com/docker/buildx 0.38.2 3c4cbd35852fc1a476923627a780a7836c28b654",
+      "docker_non_root": true,
+      "docker_group_active": true,
+      "offline_buildx_build": true,
+      "non_root_container_execution": true,
+      "compose_container_execution": true,
+      "test_containers_removed": true,
+      "uv_version": "uv 0.13.7 (x86_64-unknown-linux-gnu)",
+      "uv_locked_run": "3.14.10",
+      "uv_system_python_project": true,
+      "fnm_version": "fnm 1.39.0",
+      "fnm_installed_node_versions": 0,
+      "bash_loads_fnm_and_uv": true
+    },
+    "gpu_automatic_discovery": {
+      "amd_devices_detected": 2,
+      "names_automatically_resolved": true,
+      "power_suspended_gpu_metrics": "May be unavailable until the GPU is active."
+    },
+    "docker_enabled_and_active_after_restart": true,
+    "package_database_audit": "passed",
+    "system_failed_units": 0,
+    "user_failed_units": 0,
+    "visual_confirmation": "User reviewed the desktop; the reported activities-icon overlap was fixed and confirmed resolved in normal, hover and overview use."
   }
 }

@@ -121,5 +121,36 @@
         "libpinyin"
       ]
     ]
-  }
+  },
+  "tool_packages": [
+    "gnome-calendar",
+    "gnome-clocks",
+    "gnome-tweaks",
+    "gnome-extensions-app",
+    "nautilus",
+    "gnome-console",
+    "gnome-calculator",
+    "gnome-text-editor",
+    "gnome-system-monitor",
+    "gnome-disk-utility",
+    "file-roller",
+    "loupe",
+    "papers"
+  ],
+  "desktop_settings": {
+    "org.gnome.desktop.interface": {
+      "clock-format": "'24h'",
+      "clock-show-weekday": "true",
+      "clock-show-date": "true",
+      "clock-show-seconds": "true",
+      "gtk-enable-primary-paste": "true"
+    },
+    "org.gnome.desktop.calendar": {
+      "show-weekdate": "true"
+    },
+    "org.gnome.shell": {
+      "favorite-apps": "['org.gnome.Epiphany.desktop', 'org.gnome.Nautilus.desktop', 'org.gnome.TextEditor.desktop', 'org.gnome.Calculator.desktop', 'org.gnome.Console.desktop']"
+    }
+  },
+  "monitor_auto_gpu": true
 }

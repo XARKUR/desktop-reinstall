@@ -2,7 +2,7 @@
 
 把个人重装流程串成一个入口：清理默认应用 → 中文和输入法 → 基础工具 → 开发环境 → 外观 → 天气与扩展。可以整套执行，也可以只选需要的模块。
 
-Debian 13 x86_64 已接入完整模块流程；Arch Linux x86_64 当前已接入清理、中文环境与输入法模块，其余模块尚未接入。需要 Python 3、sudo，以及当前用户的管理员权限；安装桌面组件时需要已登录 GNOME，会下载资源的模块需要联网。桌面组件支持已验证的 GNOME 48 / 51；Debian 13 默认是 48。请在自己的桌面终端以普通用户运行，需要管理员权限时才会提示输入密码。
+Debian 13 和 Arch Linux x86_64 均已接入清理、中文输入、基础工具、开发环境、外观、天气和扩展模块。需要 Python 3、sudo，以及当前用户的管理员权限；安装桌面组件时需要已登录 GNOME，会下载资源的模块需要联网。桌面组件支持已验证的 GNOME 48 / 51；Debian 13 默认是 48。请在自己的桌面终端以普通用户运行，需要管理员权限时才会提示输入密码。
 
 ## 使用
 
@@ -19,7 +19,7 @@ cd desktop-reinstall
 ./install.sh                       # 查看整套计划
 ./install.sh --list                # 查看模块名称
 ./install.sh --check               # 只检查系统和桌面会话
-./install.sh --apply               # Debian 执行默认模块；Arch 执行清理和中文输入配置
+./install.sh --apply               # 执行对应系统的全部默认模块
 ```
 
 按模块选择时，用逗号分隔。先省略 `--apply` 查看本次选择，确认内容后再加上它。
@@ -33,7 +33,7 @@ cd desktop-reinstall
 ./install.sh --apply --skip cleanup,docker
 ```
 
-参数顺序不改变执行次序。下表为 Debian 的完整模块清单，每个模块自动补齐自己的系统依赖。Arch 当前开放 `cleanup`、`locale`，选择其他模块会在修改系统前停止。
+参数顺序不改变执行次序。下表为两种系统共用的模块清单，每个模块按发行版补齐依赖。Arch 使用 pacman 官方仓库，Debian 使用 APT；不会自动安装 AUR 助手。
 
 在 Arch 上分别清理和配置中文输入：
 
@@ -54,21 +54,21 @@ python3 modules/cleanup-arch.py     # 实际查询当前包并模拟删除
 | `cleanup` | 清理已确认不需要的默认应用；保留日历、时钟和桌面基础组件 |
 | `locale` | 生成中英文 UTF-8 locale，当前用户切换简体中文，安装 Noto CJK / Emoji、IBus 智能拼音，保留英文键盘与已有输入源 |
 | `tools` | 日历、时钟、优化、官方“扩展”、文件管理器、终端、计算器、文本编辑器、系统监视器、磁盘、归档和查看器 |
-| `docker` | 官方稳定源 Docker Engine、Compose、Buildx；开机启动，当前用户加入 docker 组 |
+| `docker` | 官方稳定源 Docker Engine、Compose、Buildx；Debian 使用 Docker 官方源，Arch 使用官方仓库；开机启动，当前用户加入 docker 组 |
 | `fnm` | 固定版本的 fnm，配置 Bash；**不安装 Node.js** |
 | `uv` | 固定版本的 uv / uvx，配置 Bash；不额外下载 Python |
-| `appearance` | Orchis-Dark、Debian 活动按钮、Tela-dark 与基础图标、Breeze 24、User Themes、GTK4 全局换肤 |
+| `appearance` | Orchis-Dark、按系统选择 Debian / Arch 活动按钮、Tela-dark 与基础图标、Breeze 24、User Themes、GTK4 全局换肤 |
 | `weather` | Gnome Weather 应用和日历天气卡片 |
 | `lunar` | Gnome Lunar，顶栏、月历与日期详情 |
 | `monitor` | Gnome Monitor，资源监控和自动显卡型号识别 |
-| `dock` | Debian Dash to Dock，关闭边缘压力触发要求 |
-| `appindicator` | Debian AppIndicator 托盘扩展，使用发行版实际 UUID |
+| `dock` | Dash to Dock：Debian 系统包、Arch 官方扩展站固定版本；关闭压力触发 |
+| `appindicator` | AppIndicator 托盘扩展，使用发行版实际 UUID |
 
 也可以选择分组：`environment` = Docker / fnm / uv；`apps` = 基础工具 / 天气；`extensions` = 农历 / 监控 / Dock / 托盘。天气模块自身已经包含日历卡片扩展。
 
 初次安装扩展、修改语言或加入 docker 组后，保存工作并注销、重新登录。Wayland 下需要重新登录来加载首次安装的扩展。输入源使用 `Super+Space` 切换。
 
-Dock 只关闭 `require-pressure-to-show`，保留现有位置与隐藏方式。首次安装时使用扩展自己的默认设置。天气首次使用需要在应用中添加地点。外观模块会应用预设，包括 GTK4 全局主题；农历、天气和监控安装使用各自的默认设置，并保留已有用户偏好。
+Dock 预设为底部、48 像素图标、智能隐藏，关闭 `require-pressure-to-show`。安装会应用公共清单中列出的这些偏好。天气首次使用需要在应用中添加地点。外观模块会应用预设，包括 GTK4 全局主题；农历和监控首次安装应用清单中的初始偏好，后续保留已有设置。Arch 的空白监控配置会通过项目自己的发现后端自动识别 GPU，显示利用率、显存和可用温度；已有设备选择保留，不拷贝其他机器的设备标识。
 
 ## 修改选择
 
@@ -82,7 +82,7 @@ Docker 组具有管理宿主系统的权限，可在公共配置中关闭 `add_u
 
 只选天气而不选中文模块时，会按需要生成中文 locale 和安装字体，以支持天气应用的中文界面，但不会修改当前用户的界面语言。中文模块按新装 GNOME 的原生 IBus 配置；已有自定义输入框架应先自行检查。
 
-显卡驱动、turing-unlock、额外应用、系统安装和系统升级由各自流程处理。Arch 清理和中文输入已接入统一入口，详见 [Arch 清理说明](docs/arch-cleanup.md) 和 [Arch 中文输入说明](docs/arch-locale.md)。其他 Arch 模块尚未接入。
+显卡驱动、turing-unlock、额外应用、系统安装和系统升级由各自流程处理。Arch 各模块均已接入，详见 [Arch 完整安装说明](docs/arch-setup.md)、[清理说明](docs/arch-cleanup.md) 和 [中文输入说明](docs/arch-locale.md)。
 
 ## 来源、记录和重试
 
@@ -103,7 +103,7 @@ Docker 组具有管理宿主系统的权限，可在公共配置中关闭 `add_u
 
 已做参数选择、只读预览、失败停止、依赖补齐、清理保护、locale 文件生成、发行版扩展 UUID 和归档路径检查，并通过模拟系统操作测试整套模块调度。四个固定提交的源码已实际下载、解包并核对入口。
 
-**尚未在一台全新 Debian 13 上连续执行整套安装**。Arch 已实际完成 20 个目标包的清理，并核对日历、时钟、包数据库和桌面服务；中文输入的验证记录见 `VALIDATION.json`；其他 Arch 模块尚未完成适配。此前独立组件的测试记录保留在相应项目及 `environment/VALIDATION.json`。
+**尚未在一台全新 Debian 13 上连续执行整套安装**。Arch 已实际完成 20 个目标包的清理，并核对日历、时钟、包数据库和桌面服务；完整桌面与开发环境的实测范围见 `VALIDATION.json`。此前独立组件的测试记录保留在相应项目及 `environment/VALIDATION.json`。
 
 开发检查：
 

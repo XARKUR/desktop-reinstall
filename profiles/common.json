@@ -20,7 +20,7 @@
   "projects": {
     "gnome-appearance": {
       "repository": "XARKUR/gnome-appearance",
-      "commit": "c31e5a4181cf67ba3f9ac15e7d5d9a1b5322d4b8",
+      "commit": "7ed34d987fa3625b45c7d9417b3d054261eb8c1c",
       "includes": [
         "Orchis-Dark",
         "Tela-dark",
@@ -37,14 +37,34 @@
         "顶栏资源监控",
         "AMD / Intel 自动型号识别",
         "NVIDIA 指标（需要 nvidia-smi）"
-      ]
+      ],
+      "uuid": "resource-monitor@system.local",
+      "schema": "org.gnome.shell.extensions.system-resource-monitor",
+      "initial_settings": {
+        "cpustatus": "true",
+        "ramstatus": "true",
+        "netethstatus": "true",
+        "gpudisplaydevicename": "true"
+      }
     },
     "Gnome Lunar": {
       "repository": "XARKUR/gnome-lunar",
       "commit": "c450a528d6cb03dfd0abcde554d5318e5f6f512b",
       "includes": [
         "顶栏和月历农历"
-      ]
+      ],
+      "uuid": "lunar-calendar@system.local",
+      "schema": "org.gnome.shell.extensions.system-lunar-calendar",
+      "initial_settings": {
+        "show-date": "true",
+        "show-time": "true",
+        "show-calendar": "true",
+        "show-details": "true",
+        "show-ganzhi": "true",
+        "show-festivals": "true",
+        "show-solar-terms": "true",
+        "label-size": "'normal'"
+      }
     },
     "Gnome Weather": {
       "repository": "XARKUR/gnome-weather-local",
@@ -52,7 +72,9 @@
       "includes": [
         "天气应用",
         "日历天气卡片"
-      ]
+      ],
+      "uuid": "weather@system.local",
+      "schema": "org.gnome.Weather.Local"
     }
   },
   "system_apps": {
@@ -65,9 +87,19 @@
     "Dash to Dock": {
       "uuid": "dash-to-dock@micxgx.gmail.com",
       "debian13": "gnome-shell-extension-dashtodock",
-      "arch": "extensions.gnome.org/extension/307/dash-to-dock/",
+      "arch": {
+        "url": "https://extensions.gnome.org/download-extension/dash-to-dock@micxgx.gmail.com.shell-extension.zip?version_tag=76105",
+        "sha256": "b05003e79835a35451e94931539ba1977f2a7a93b652a4fc6b7be60a77c18ae1",
+        "version": 110
+      },
       "settings": {
-        "require-pressure-to-show": false
+        "require-pressure-to-show": false,
+        "dock-position": "BOTTOM",
+        "intellihide": true,
+        "autohide": true,
+        "dock-fixed": false,
+        "dash-max-icon-size": 48,
+        "extend-height": false
       }
     },
     "AppIndicator and KStatusNotifierItem Support": {
@@ -84,7 +116,8 @@
       "source": "official-stable",
       "compose": true,
       "buildx": true,
-      "add_user_to_group": true
+      "add_user_to_group": true,
+      "arch_source": "official-repository"
     },
     "fnm": {
       "version": "1.39.0",

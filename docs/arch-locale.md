@@ -8,7 +8,7 @@
 ./install.sh --apply --only locale    # 实际配置
 ```
 
-以普通桌面用户运行，软件安装、生成 locale 和账户语言设置需要 sudo 认证。Arch 默认模块目前为 `cleanup,locale`，需要只配置语言时请显式使用 `--only locale`。
+以普通桌面用户运行，软件安装、生成 locale 和账户语言设置需要 sudo 认证。Arch 默认选择完整安装流程，需要只配置语言时请显式使用 `--only locale`。
 
 ## 配置内容
 
