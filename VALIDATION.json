@@ -1,7 +1,7 @@
 {
   "scope": "Debian 13 and Arch Linux x86_64 modular GNOME desktop workflow",
   "automated_tests": {
-    "passed": 46,
+    "passed": 53,
     "system_operations": "mocked; locale file writes redirected to temporary directory",
     "target_python": "Tests also passed on Arch Python 3.14.10."
   },
@@ -278,5 +278,28 @@
     ],
     "headless_remote_plan": "passed on Arch without a controlling terminal",
     "shell_stage_cleanup_on_child_failure": "passed"
+  },
+  "deskflow_module": {
+    "menu_number": 13,
+    "group": "apps",
+    "included_in_recommended_profile": true,
+    "debian13": {
+      "source": "Deskflow upstream Trixie x86_64 release",
+      "version": "1.27.0.0",
+      "sha256": "1f7de2f1fbc68de410339dbdb11ed0e5439bd49bfbfbf66f4467def1c6bb5f96",
+      "metadata_verified": true,
+      "native_wayland_dependency": "qt6-wayland",
+      "apt_dependency_simulation": "passed without removals",
+      "existing_package_skip_test": "passed",
+      "installed_package_list_unchanged": true,
+      "fresh_install_via_new_module": "not executed"
+    },
+    "arch": {
+      "source": "official package repository",
+      "installed_version": "1.27.0-2",
+      "existing_package_skip_test": "passed",
+      "installed_package_list_unchanged": true
+    },
+    "configuration": "No automatic server/client configuration, pairing, certificate transfer or launch."
   }
 }

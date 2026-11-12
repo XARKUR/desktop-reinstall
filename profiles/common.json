@@ -6,7 +6,8 @@
   ],
   "apps": [
     "Gnome Weather",
-    "GNOME 扩展"
+    "GNOME 扩展",
+    "Deskflow"
   ],
   "appearance": [
     "gnome-appearance"
@@ -81,6 +82,19 @@
     "GNOME 扩展": {
       "debian13": "gnome-shell-extension-prefs",
       "arch": "gnome-extensions-app"
+    },
+    "Deskflow": {
+      "arch": "deskflow",
+      "debian13": {
+        "package": "deskflow",
+        "version": "1.27.0.0",
+        "architecture": "amd64",
+        "url": "https://github.com/deskflow/deskflow/releases/download/v1.27.0/deskflow-1.27.0-debian-trixie-x86_64.deb",
+        "sha256": "1f7de2f1fbc68de410339dbdb11ed0e5439bd49bfbfbf66f4467def1c6bb5f96",
+        "extra_packages": [
+          "qt6-wayland"
+        ]
+      }
     }
   },
   "system_extensions": {

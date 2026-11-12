@@ -113,3 +113,32 @@ def fetch_extension(config, uuid, major, destination, cache):
     if meta['uuid'] != uuid or str(major) not in meta['shell-version'] or meta['version'] != config['version']:
         raise ValueError('扩展身份、版本或 GNOME 兼容性不符。')
     return destination
+
+
+def fetch_deb(config, destination, cache):
+    """Download a pinned upstream Deskflow Debian asset without executing it."""
+    from urllib.parse import urlsplit
+    url, digest = config['url'], config['sha256']
+    parsed = urlsplit(url)
+    if parsed.scheme != 'https' or parsed.netloc != 'github.com' or not parsed.path.startswith('/deskflow/deskflow/releases/download/') or not parsed.path.endswith('.deb'):
+        raise ValueError('Deskflow 安装包必须来自上游官方发布页。')
+    if not re.fullmatch(r'[0-9a-f]{64}', digest):
+        raise ValueError('Deskflow 安装包缺少固定 SHA256。')
+    cache.mkdir(parents=True, exist_ok=True)
+    archive = cache / (digest + '.deb')
+    data = archive.read_bytes() if archive.exists() else b''
+    if hashlib.sha256(data).hexdigest() != digest:
+        for attempt in range(3):
+            try:
+                with urllib.request.urlopen(url, timeout=45) as response:
+                    data = response.read(32 * 1024 * 1024 + 1)
+                break
+            except OSError:
+                if attempt == 2: raise
+                time.sleep(2)
+        if len(data) > 32 * 1024 * 1024 or hashlib.sha256(data).hexdigest() != digest:
+            raise ValueError('Deskflow 安装包大小或 SHA256 不符。')
+        partial = archive.with_suffix('.partial')
+        partial.write_bytes(data);partial.replace(archive)
+    shutil.copyfile(archive, destination)
+    return destination

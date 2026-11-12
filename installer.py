@@ -16,7 +16,7 @@ import subprocess
 import sys
 import tempfile
 
-from sources import fetch_project, fetch_extension
+from sources import fetch_project, fetch_extension, fetch_deb
 
 ROOT = Path(__file__).resolve().parent
 MODULES = {
@@ -32,8 +32,9 @@ MODULES = {
     'monitor': 'Gnome Monitor',
     'dock': 'Dash to Dock 与边缘触发设置',
     'appindicator': 'AppIndicator 托盘扩展',
+    'deskflow': 'Deskflow 键盘鼠标共享',
 }
-GROUPS = {'environment': ['docker', 'fnm', 'uv'], 'apps': ['tools', 'weather'],
+GROUPS = {'environment': ['docker', 'fnm', 'uv'], 'apps': ['tools', 'weather', 'deskflow'],
           'extensions': ['lunar', 'monitor', 'dock', 'appindicator']}
 PROJECTS = {'appearance': 'gnome-appearance', 'weather': 'Gnome Weather',
             'lunar': 'Gnome Lunar', 'monitor': 'Gnome Monitor'}
@@ -70,6 +71,8 @@ def defaults(common):
         selected.add('appearance')
     if 'Gnome Weather' in common['apps']:
         selected.add('weather')
+    if 'Deskflow' in common['apps']:
+        selected.add('deskflow')
     for module, name in [('lunar', 'Gnome Lunar'), ('monitor', 'Gnome Monitor'),
                          ('dock', 'Dash to Dock'), ('appindicator', 'AppIndicator and KStatusNotifierItem Support')]:
         if name in common['extensions']:
@@ -213,6 +216,51 @@ class Installer:
             major = re.search(r'GNOME Shell\s+(\d+)', self.read(['gnome-shell', '--version'])).group(1)
             self.prepared['dock'] = fetch_extension(config['arch'], config['uuid'], major,
                 Path(temp) / 'dock', cache)
+        if 'deskflow' in self.selected and self.edition.get('os_id') == 'debian':
+            config = self.common['system_apps']['Deskflow']['debian13']
+            if not self.deskflow_satisfied(config):
+                package = fetch_deb(config, Path(temp) / 'deskflow.deb', cache)
+                metadata = [self.read(['dpkg-deb', '--field', package, key]).strip()
+                            for key in ['Package', 'Version', 'Architecture']]
+                if metadata != [config['package'], config['version'], config['architecture']]:
+                    raise ValueError('Deskflow 安装包名称、版本或架构不符。')
+                self.prepared['deskflow'] = package
+
+    def deskflow_satisfied(self, config):
+        query = subprocess.run(['dpkg-query', '-W', '-f=${Version} ${db:Status-Abbrev}', 'deskflow'],
+                               capture_output=True, text=True, env=self.environment)
+        if query.returncode not in (0, 1):
+            raise RuntimeError('无法读取 Deskflow 的安装状态。')
+        fields = query.stdout.split()
+        if query.returncode or len(fields) != 2 or fields[1] not in ('ii', 'hi'):
+            return False
+        comparison = subprocess.run(['dpkg', '--compare-versions', fields[0], 'ge', config['version']],
+                                    capture_output=True, text=True, env=self.environment)
+        if comparison.returncode not in (0, 1):
+            raise RuntimeError('无法比较 Deskflow 版本。')
+        return comparison.returncode == 0
+
+    def deskflow(self):
+        if self.edition.get('os_id') == 'arch':
+            self.ensure_packages([self.common['system_apps']['Deskflow']['arch']])
+            return
+        config = self.common['system_apps']['Deskflow']['debian13']
+        dependencies = config.get('extra_packages', [])
+        if not all(re.fullmatch(r'[a-z0-9][a-z0-9+.-]*', name) for name in dependencies):
+            raise ValueError('Deskflow 依赖包名无效。')
+        if self.deskflow_satisfied(config):
+            self.ensure_packages(dependencies)
+            print('Deskflow 已安装相同或更高版本，保留现有配置。')
+            return
+        if 'deskflow' not in self.prepared:
+            raise RuntimeError('Deskflow 安装状态在准备后发生变化，请重新运行。')
+        # APT's unprivileged downloader can read its own cache, even with a private HOME.
+        cached = Path('/var/cache/apt/archives') / ('deskflow-' + config['sha256'][:16] + '.deb')
+        self.run(['sudo', 'install', '-D', '-m', '0644', self.prepared['deskflow'], cached])
+        if not self.apt_updated:
+            self.run(['sudo', 'apt-get', 'update'])
+            self.apt_updated = True
+        self.run(['sudo', 'apt-get', 'install', '-y', '--no-install-recommends', '--no-remove', cached, *dependencies])
 
     def locale(self):
         config = self.edition['localization']
@@ -315,6 +363,8 @@ class Installer:
             for schema, values in self.edition.get('desktop_settings', {}).items():
                 for key, value in values.items():
                     self.setting(schema, key, value)
+        elif module == 'deskflow':
+            self.deskflow()
         elif module == 'docker':
             config = self.common['environment_settings']['docker']
             edition = 'arch' if self.edition.get('os_id') == 'arch' else 'debian'
@@ -484,7 +534,7 @@ def main(argv=None):
     if args.list:
         for name, title in MODULES.items():
             print(name.ljust(14) + title)
-        print('分组：environment=docker,fnm,uv；apps=tools,weather；extensions=lunar,monitor,dock,appindicator')
+        print('分组：' + '；'.join(name + '=' + ','.join(modules) for name, modules in GROUPS.items()))
         return 0
     profile = args.profile
     if profile is None:

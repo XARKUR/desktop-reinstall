@@ -48,6 +48,7 @@ curl -fsSL https://raw.githubusercontent.com/XARKUR/desktop-reinstall/main/insta
 ./install.sh --apply --only cleanup,locale,tools
 ./install.sh --apply --only environment
 ./install.sh --apply --only fnm
+./install.sh --apply --only deskflow
 ./install.sh --apply --only appearance,weather,lunar,monitor
 ./install.sh --apply --skip cleanup,docker
 ```
@@ -82,8 +83,9 @@ python3 modules/cleanup-arch.py     # 实际查询当前包并模拟删除
 | `monitor` | Gnome Monitor，资源监控和自动显卡型号识别 |
 | `dock` | Dash to Dock：Debian 系统包、Arch 官方扩展站固定版本；关闭压力触发 |
 | `appindicator` | AppIndicator 托盘扩展，使用发行版实际 UUID |
+| `deskflow` | Deskflow 键鼠共享：Arch 官方包；Debian 13 固定上游 Trixie 包与 SHA256 |
 
-也可以选择分组：`environment` = Docker / fnm / uv；`apps` = 基础工具 / 天气；`extensions` = 农历 / 监控 / Dock / 托盘。天气模块自身已经包含日历卡片扩展。
+也可以选择分组：`environment` = Docker / fnm / uv；`apps` = 基础工具 / 天气 / Deskflow；`extensions` = 农历 / 监控 / Dock / 托盘。天气模块自身已经包含日历卡片扩展。Deskflow 在交互菜单中为第 13 项，加入推荐配置；仍需自行勾选或输入 `r`。
 
 初次安装扩展、修改语言或加入 docker 组后，保存工作并注销、重新登录。Wayland 下需要重新登录来加载首次安装的扩展。输入源使用 `Super+Space` 切换。
 
@@ -102,6 +104,8 @@ Docker 组具有管理宿主系统的权限，可在公共配置中关闭 `add_u
 只选天气而不选中文模块时，会按需要生成中文 locale 和安装字体，以支持天气应用的中文界面，但不会修改当前用户的界面语言。中文模块按新装 GNOME 的原生 IBus 配置；已有自定义输入框架应先自行检查。
 
 显卡驱动、turing-unlock、额外应用、系统安装和系统升级由各自流程处理。Arch 各模块均已接入，详见 [Arch 完整安装说明](docs/arch-setup.md)、[清理说明](docs/arch-cleanup.md) 和 [中文输入说明](docs/arch-locale.md)。
+
+Deskflow 的来源、版本与使用说明见 [Deskflow 模块](docs/deskflow.md)。
 
 ## 来源、记录和重试
 

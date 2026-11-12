@@ -17,7 +17,7 @@ curl -fsSL https://raw.githubusercontent.com/XARKUR/desktop-reinstall/main/insta
 ./install.sh --apply --only environment
 ```
 
-模块次序与 Debian 版一致：清理 → 中文输入 → 基础工具和桌面偏好 → Docker / fnm / uv → 外观 → 天气 → 农历 → 监控 → Dock → 托盘。先准备所选项目的固定版本资源，下载失败时不会先清理应用。
+模块次序与 Debian 版一致：清理 → 中文输入 → 基础工具和桌面偏好 → Docker / fnm / uv → 外观 → 天气 → 农历 → 监控 → Dock → 托盘 → Deskflow。先准备所选项目的固定版本资源，下载失败时不会先清理应用。
 
 ## 发行版适配
 
@@ -36,6 +36,7 @@ curl -fsSL https://raw.githubusercontent.com/XARKUR/desktop-reinstall/main/insta
 | 资源监控 | 同一个项目；首次使用自动发现 AMD / Intel / NVIDIA 可用指标，型号来自当前机器的发现后端 |
 | Dock | 从 GNOME 官方扩展站下载固定 v110，校验 SHA256 和 GNOME 版本；安装到用户目录并备份旧版本 |
 | 托盘 | Arch 官方 gnome-shell-extension-appindicator，UUID 为 appindicatorsupport@rgcjonas.gmail.com |
+| Deskflow | 官方仓库 deskflow 包，保留已有连接配置和证书 |
 
 Arch 保留原生 Console 和现有浏览器，不批量复制其他设备上的应用启动项。硬件驱动由基础系统或对应的独立项目管理，不在通用流程中安装 NVIDIA 驱动。
 

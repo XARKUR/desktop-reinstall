@@ -159,7 +159,7 @@ class InstallerTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp, patch.dict(os.environ, XDG_STATE_HOME=temp), \
              patch.object(obj, 'preflight'), patch.object(obj, 'prepare'), \
              patch.object(obj, 'ensure_packages'), patch.object(obj, 'run') as run, \
-             patch.object(obj, 'configure_project'), \
+             patch.object(obj, 'configure_project'), patch.object(obj, 'deskflow') as deskflow, \
              patch.object(obj, 'locale') as locale, patch.object(obj, 'extension') as extension, \
              contextlib.redirect_stdout(io.StringIO()):
             obj.apply()
@@ -167,5 +167,6 @@ class InstallerTests(unittest.TestCase):
         self.assertEqual(record['completed'], selected)
         self.assertEqual(record['status'], 'READY')
         locale.assert_called_once()
+        deskflow.assert_called_once()
         self.assertEqual([call.args[0] for call in extension.call_args_list], ['dock', 'appindicator'])
         self.assertEqual(run.call_count, 8)

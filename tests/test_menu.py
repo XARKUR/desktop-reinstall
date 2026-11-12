@@ -27,7 +27,7 @@ class MenuTests(unittest.TestCase):
     def test_numbers_ranges_names_and_groups(self):
         self.assertEqual(installer.menu_selection('1，2 7-9'),{'cleanup','locale','appearance','weather','lunar'})
         self.assertEqual(installer.menu_selection('fnm, extensions'),{'fnm','lunar','monitor','dock','appindicator'})
-        for invalid in ['0','13','4-2','1,not-a-module','1;echo danger']:
+        for invalid in ['0',str(len(installer.MODULES)+1),'4-2','1,not-a-module','1;echo danger']:
             with self.assertRaises(ValueError):installer.menu_selection(invalid)
 
     def test_preview_and_toggle_install_only_final_selection_in_canonical_order(self):
