@@ -77,3 +77,19 @@ class BootstrapTests(unittest.TestCase):
         for data in [archive('../escape'),archive('/absolute'),archive('desktop-reinstall-main/link',tarfile.SYMTYPE)]:
             with self.subTest(data=data[:10]), self.assertRaises(ValueError):
                 self.run_bootstrap({'ID':'arch'},['--menu'],data=data)
+
+    def test_streamed_shell_defaults_to_menu_and_cleans_stage_on_child_failure(self):
+        import os
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);binary=root/'bin';binary.mkdir();downloads=root/'downloads';downloads.mkdir()
+            arguments=root/'args.txt'
+            fake=binary/'python3'
+            fake.write_text('#!/bin/sh\nprintf \'%s\\n\' "$@" > "$BOOTSTRAP_TEST_ARGS"\nexit 23\n')
+            fake.chmod(0o755)
+            env=dict(os.environ,PATH=str(binary)+os.pathsep+os.environ.get('PATH',''),
+                     TMPDIR=str(downloads),BOOTSTRAP_TEST_ARGS=str(arguments))
+            result=subprocess.run(['/bin/sh'],input=(ROOT/'install.sh').read_text(),text=True,
+                                  env=env,capture_output=True,cwd=root)
+            self.assertEqual(result.returncode,23)
+            self.assertEqual(arguments.read_text().splitlines()[-1],'--menu')
+            self.assertEqual(list(downloads.iterdir()),[])

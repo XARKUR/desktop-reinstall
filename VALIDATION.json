@@ -1,7 +1,7 @@
 {
   "scope": "Debian 13 and Arch Linux x86_64 modular GNOME desktop workflow",
   "automated_tests": {
-    "passed": 45,
+    "passed": 46,
     "system_operations": "mocked; locale file writes redirected to temporary directory",
     "target_python": "Tests also passed on Arch Python 3.14.10."
   },
@@ -254,6 +254,29 @@
       "child receives terminal stdin",
       "unsafe archive paths rejected"
     ],
-    "live_menu_tests": "pending"
+    "live_menu_tests": [
+      {
+        "system": "Debian 13",
+        "entry": "curl | sh",
+        "actions": [
+          "select by number range",
+          "preview",
+          "quit"
+        ],
+        "installed_package_list_unchanged": true
+      },
+      {
+        "system": "Arch Linux",
+        "entry": "curl | sh",
+        "actions": [
+          "select multiple modules",
+          "preview",
+          "quit"
+        ],
+        "installed_package_list_unchanged": true
+      }
+    ],
+    "headless_remote_plan": "passed on Arch without a controlling terminal",
+    "shell_stage_cleanup_on_child_failure": "passed"
   }
 }
