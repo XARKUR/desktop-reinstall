@@ -157,6 +157,6 @@
     "package_database_audit": "passed",
     "user_failed_units": 0,
     "calendar_and_clocks_retained": true,
-    "physical_typing_confirmation": "not captured; engine registration and desktop settings verified"
+    "physical_typing_confirmation": "User confirmed Intelligent Pinyin can input Chinese after relogin."
   }
 }
