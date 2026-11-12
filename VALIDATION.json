@@ -1,0 +1,58 @@
+{
+  "scope": "Debian 13 x86_64 GNOME modular installer",
+  "automated_tests": {
+    "passed": 16,
+    "system_operations": "mocked; locale file writes redirected to temporary directory"
+  },
+  "syntax_checks": [
+    "all Python parsed",
+    "all shell scripts bash -n",
+    "all JSON parsed"
+  ],
+  "source_downloads": {
+    "result": "four pinned GitHub source archives downloaded, safely extracted, entry files verified",
+    "projects": {
+      "gnome-appearance": {
+        "repository": "XARKUR/gnome-appearance",
+        "commit": "c31e5a4181cf67ba3f9ac15e7d5d9a1b5322d4b8",
+        "includes": [
+          "Orchis-Dark",
+          "Tela-dark",
+          "Breeze 24",
+          "User Themes",
+          "GTK4 全局外观",
+          "活动按钮按系统选择 Debian / Arch 图标"
+        ]
+      },
+      "Gnome Monitor": {
+        "repository": "XARKUR/gnome-monitor",
+        "commit": "c282e4dbbd4b7a258b1a51a69eb01eaaf481f8c8",
+        "includes": [
+          "顶栏资源监控",
+          "AMD / Intel 自动型号识别",
+          "NVIDIA 指标（需要 nvidia-smi）"
+        ]
+      },
+      "Gnome Lunar": {
+        "repository": "XARKUR/gnome-lunar",
+        "commit": "c450a528d6cb03dfd0abcde554d5318e5f6f512b",
+        "includes": [
+          "顶栏和月历农历"
+        ]
+      },
+      "Gnome Weather": {
+        "repository": "XARKUR/gnome-weather-local",
+        "commit": "f42e48445cafd47f8b776c7eadf63a8319e35222",
+        "includes": [
+          "天气应用",
+          "日历天气卡片"
+        ]
+      }
+    }
+  },
+  "local_installation_executed": false,
+  "fresh_debian13_end_to_end_installation_executed": false,
+  "limits": [
+    "Archive fetching and tests do not replace installation on a fresh Debian 13 GNOME system."
+  ]
+}

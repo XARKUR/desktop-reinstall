@@ -1,0 +1,24 @@
+{
+  "distribution": "Debian 13 x86_64",
+  "versions": {
+    "docker": "29.9.3",
+    "compose": "5.7.1",
+    "buildx": "0.38.1",
+    "containerd": "2.4.2",
+    "fnm": "1.39.0",
+    "uv": "0.13.7"
+  },
+  "checks": {
+    "docker_service_active": true,
+    "docker_service_enabled": true,
+    "non_root_hello_world": true,
+    "compose_container_run_and_cleanup": true,
+    "fnm_remote_version_listing": true,
+    "installed_node_versions": 0,
+    "uv_sync_and_locked_run": true,
+    "uv_project_interpreter": "system Python 3.13.5",
+    "repeat_user_install_preserves_bash_configuration": true
+  },
+  "temporary_containers_and_compose_networks_removed": true,
+  "desktop_group_membership": "Requires a new login for all existing desktop processes"
+}

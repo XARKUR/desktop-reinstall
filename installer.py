@@ -1,0 +1,337 @@
+#!/usr/bin/env python3
+"""Modular Debian 13 GNOME reinstall workflow. Default action is a read-only plan."""
+import argparse
+import ast
+import datetime
+import fcntl
+import json
+import os
+from pathlib import Path
+import platform
+import pwd
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+
+from sources import fetch_project
+
+ROOT = Path(__file__).resolve().parent
+MODULES = {
+    'cleanup': '清理默认应用',
+    'locale': '简体中文、字体和智能拼音',
+    'tools': '日历、时钟与 GNOME 基础工具',
+    'docker': 'Docker Engine、Compose、Buildx',
+    'fnm': 'fnm 管理器（不预装 Node.js）',
+    'uv': 'uv / uvx',
+    'appearance': 'Orchis、Tela、Breeze 与 User Themes',
+    'weather': 'Gnome Weather 与日历天气卡片',
+    'lunar': 'Gnome Lunar',
+    'monitor': 'Gnome Monitor',
+    'dock': 'Dash to Dock 与边缘触发设置',
+    'appindicator': 'AppIndicator 托盘扩展',
+}
+GROUPS = {'environment': ['docker', 'fnm', 'uv'], 'apps': ['tools', 'weather'],
+          'extensions': ['lunar', 'monitor', 'dock', 'appindicator']}
+PROJECTS = {'appearance': 'gnome-appearance', 'weather': 'Gnome Weather',
+            'lunar': 'Gnome Lunar', 'monitor': 'Gnome Monitor'}
+GUI_MODULES = {'locale', 'appearance', 'weather', 'lunar', 'monitor', 'dock', 'appindicator'}
+TOOL_PACKAGES = ['gnome-calendar', 'gnome-clocks', 'gnome-tweaks', 'gnome-shell-extension-prefs',
+                 'nautilus', 'gnome-terminal', 'gnome-calculator', 'gnome-text-editor',
+                 'gnome-system-monitor', 'gnome-disk-utility', 'file-roller', 'loupe', 'evince']
+PROJECT_PACKAGES = {
+    'appearance': ['gjs', 'libglib2.0-bin', 'libgtk-3-bin', 'sassc', 'gtk2-engines-murrine', 'gnome-themes-extra'],
+    'weather': ['locales', 'fonts-noto-cjk', 'fonts-noto-color-emoji', 'gjs', 'libglib2.0-bin', 'gir1.2-gtk-4.0', 'gir1.2-adw-1',
+                'gir1.2-gweather-4.0', 'gir1.2-soup-3.0', 'gir1.2-geoclue-2.0'],
+    'lunar': ['gjs', 'libglib2.0-bin'],
+    'monitor': ['gjs', 'libglib2.0-bin', 'gnome-system-monitor', 'pciutils', 'pci.ids'],
+}
+
+
+def load(path):
+    return json.loads(Path(path).read_text())
+
+
+def defaults(common):
+    selected = {'cleanup', 'locale', 'tools'}
+    for module, name in [('docker', 'Docker'), ('fnm', 'fnm（管理 Node.js）'), ('uv', 'uv（管理 Python）')]:
+        if name in common['environment']:
+            selected.add(module)
+    if 'gnome-appearance' in common['appearance']:
+        selected.add('appearance')
+    if 'Gnome Weather' in common['apps']:
+        selected.add('weather')
+    for module, name in [('lunar', 'Gnome Lunar'), ('monitor', 'Gnome Monitor'),
+                         ('dock', 'Dash to Dock'), ('appindicator', 'AppIndicator and KStatusNotifierItem Support')]:
+        if name in common['extensions']:
+            selected.add(module)
+    return selected
+
+
+def expand(value):
+    result = set()
+    for name in value.split(','):
+        name = name.strip()
+        if name in GROUPS:
+            result.update(GROUPS[name])
+        elif name in MODULES:
+            result.add(name)
+        else:
+            raise ValueError('未知模块：' + name)
+    return result
+
+
+def select_modules(common, only=None, skip=None):
+    selected = expand(only) if only is not None else defaults(common)
+    if skip is not None:
+        selected -= expand(skip)
+    if not selected:
+        raise ValueError('没有选择任何模块。')
+    return [name for name in MODULES if name in selected]
+
+
+class Installer:
+    def __init__(self, edition, common, selected, profile):
+        self.edition, self.common, self.selected, self.profile = edition, common, selected, Path(profile).resolve()
+        self.environment = os.environ.copy()
+        self.prepared = {}
+        self.apt_updated = False
+        self.record = {'modules': selected, 'completed': [], 'commands': []}
+        self.settings_before = {}
+
+    def preflight(self):
+        if os.geteuid() == 0:
+            raise ValueError('请以 GNOME 桌面用户运行整个入口，需要时脚本会调用 sudo。')
+        release = platform.freedesktop_os_release()
+        if release.get('ID') != 'debian' or release.get('VERSION_ID') != '13' or platform.machine() != 'x86_64':
+            raise ValueError('实际执行适用于 Debian 13 x86_64。其他系统可以查看计划。')
+        for name in ['sudo', 'apt-get', 'dpkg-query']:
+            if not shutil.which(name):
+                raise ValueError('缺少系统命令：' + name)
+        if self.edition.get('os_id') != 'debian' or self.edition.get('version_id') != '13':
+            raise ValueError('请选择 Debian 13 配置。')
+        if set(self.selected) & GUI_MODULES:
+            bus = Path('/run/user') / str(os.getuid()) / 'bus'
+            if not self.environment.get('DBUS_SESSION_BUS_ADDRESS'):
+                if not bus.exists():
+                    raise ValueError('所选桌面模块需要已经登录的 GNOME 会话。')
+                self.environment['DBUS_SESSION_BUS_ADDRESS'] = 'unix:path=' + str(bus)
+                self.environment.setdefault('XDG_RUNTIME_DIR', str(bus.parent))
+            version = self.read(['gnome-shell', '--version'])
+            if not re.search(r'GNOME Shell\s+(48|51)(?:\.|\s|$)', version):
+                raise ValueError('桌面项目已验证的 Shell 主版本为 48 和 51：' + version.strip())
+            if 'appearance' in self.selected:
+                disabled = self.read(['gsettings', 'get', 'org.gnome.shell', 'disable-user-extensions']).strip()
+                if disabled == 'true':
+                    raise ValueError('当前 GNOME 全局禁用了用户扩展，请先在“扩展”应用启用，才能应用 Shell 主题。')
+        lock = load(ROOT / 'environment/sources.lock.json')
+        for name in ['fnm', 'uv']:
+            if name in self.selected and self.common['environment_settings'][name]['version'] != lock[name]['version']:
+                raise ValueError(name + ' 版本与 sources.lock.json 不一致，请同时更新来源与校验值。')
+        if 'docker' in self.selected:
+            config = self.common['environment_settings']['docker']
+            if config['source'] != 'official-stable' or not all(isinstance(config[key], bool)
+                    for key in ['add_user_to_group', 'compose', 'buildx']):
+                raise ValueError('Docker 预设需要官方稳定源及布尔类型的组件开关。')
+
+    def read(self, args):
+        return subprocess.check_output(list(map(str, args)), text=True, env=self.environment)
+
+    def run(self, args):
+        argv = list(map(str, args))
+        self.record['commands'].append(argv)
+        subprocess.run(argv, check=True, env=self.environment)
+
+    def save(self):
+        (self.state / 'run.json').write_text(json.dumps(self.record, ensure_ascii=False, indent=2) + '\n')
+        (self.state / 'settings-before.json').write_text(json.dumps(self.settings_before, ensure_ascii=False, indent=2) + '\n')
+
+    def ensure_packages(self, packages):
+        packages = sorted(set(packages))
+        if not all(re.fullmatch(r'[a-z0-9][a-z0-9+.-]*', name) for name in packages):
+            raise ValueError('包名无效。')
+        if not packages:
+            return
+        query = subprocess.run(['dpkg-query', '-W', '-f=${binary:Package} ${db:Status-Abbrev}\n', *packages],
+                               capture_output=True, text=True, env=self.environment)
+        installed = {line.split()[0].split(':')[0] for line in query.stdout.splitlines()
+                     if line.split()[1:2] == ['ii']}
+        missing = [name for name in packages if name not in installed]
+        if missing:
+            if not self.apt_updated:
+                self.run(['sudo', 'apt-get', 'update'])
+                self.apt_updated = True
+            self.run(['sudo', 'apt-get', 'install', '-y', '--no-install-recommends', *missing])
+
+    def setting(self, schema, key, value):
+        identity = schema + ' ' + key
+        args = ['gsettings']
+        if identity not in self.settings_before:
+            self.settings_before[identity] = self.read(args + ['get', schema, key]).strip()
+            self.save()
+        self.run(args + ['set', schema, key, value])
+
+    def prepare(self, temp):
+        cache = Path(os.environ.get('XDG_CACHE_HOME', str(Path.home() / '.cache'))) / 'desktop-reinstall'
+        for module in self.selected:
+            if module not in PROJECTS:
+                continue
+            name = PROJECTS[module]
+            print('准备固定版本项目：' + name, flush=True)
+            project = self.common['projects'][name]
+            source = fetch_project(project, Path(temp) / module, cache)
+            entry = 'appearance.py' if module == 'appearance' else 'project.py'
+            if not (source / entry).is_file():
+                raise ValueError('项目入口缺失：' + name)
+            self.prepared[module] = source
+
+    def locale(self):
+        config = self.edition['localization']
+        self.ensure_packages(config['packages'])
+        self.run(['sudo', sys.executable, ROOT / 'modules/locales-root.py',
+                  '--profile', self.profile, '--user', pwd.getpwuid(os.getuid()).pw_name])
+        self.setting('org.gnome.system.locale', 'region', repr(config['language']))
+        schema = 'org.gnome.desktop.input-sources'
+        before = self.read(['gsettings', 'get', schema, 'sources']).strip()
+        values = ast.literal_eval(before.replace('@a(ss) ', ''))
+        for source in config['input_sources']:
+            item = tuple(source)
+            if item not in values:
+                values.append(item)
+        self.setting(schema, 'sources', repr(values))
+
+    def extension(self, module):
+        name = 'Dash to Dock' if module == 'dock' else 'AppIndicator and KStatusNotifierItem Support'
+        config = self.common['system_extensions'][name]
+        self.ensure_packages([config['debian13']])
+        uuid = config['uuid']
+        if isinstance(uuid, dict):
+            uuid = uuid['debian13']
+        metadata = Path('/usr/share/gnome-shell/extensions') / uuid / 'metadata.json'
+        info = load(metadata)
+        version = self.read(['gnome-shell', '--version'])
+        major = re.search(r'GNOME Shell\s+(\d+)', version).group(1)
+        if major not in info['shell-version'] or uuid != info['uuid']:
+            raise ValueError('发行版扩展与当前 Shell 不兼容：' + name)
+        schema = 'org.gnome.shell'
+        enabled = ast.literal_eval(self.read(['gsettings', 'get', schema, 'enabled-extensions']).replace('@as ', ''))
+        disabled = ast.literal_eval(self.read(['gsettings', 'get', schema, 'disabled-extensions']).replace('@as ', ''))
+        if uuid not in enabled:
+            self.setting(schema, 'enabled-extensions', repr([*enabled, uuid]))
+        if uuid in disabled:
+            self.setting(schema, 'disabled-extensions', repr([item for item in disabled if item != uuid]))
+        for key, value in config.get('settings', {}).items():
+            self.setting('org.gnome.shell.extensions.dash-to-dock', key,
+                         str(value).lower() if isinstance(value, bool) else repr(value))
+
+    def execute(self, module):
+        if module == 'cleanup':
+            self.run(['sudo', sys.executable, ROOT / 'modules/cleanup.py', '--profile', self.profile, '--apply'])
+        elif module == 'locale':
+            self.locale()
+        elif module == 'tools':
+            self.ensure_packages(self.edition.get('tool_packages', TOOL_PACKAGES))
+        elif module == 'docker':
+            config = self.common['environment_settings']['docker']
+            if config['source'] != 'official-stable':
+                raise ValueError('Docker 模块使用官方稳定源。')
+            self.run(['sudo', 'bash', ROOT / 'environment/install-docker-debian.sh', pwd.getpwuid(os.getuid()).pw_name,
+                      str(config['add_user_to_group']).lower(), str(config['compose']).lower(), str(config['buildx']).lower()])
+        elif module in ('fnm', 'uv'):
+            self.ensure_packages(['curl', 'ca-certificates'])
+            self.run([sys.executable, ROOT / 'environment/install-user-tools.py', '--only', module])
+        elif module in PROJECTS:
+            self.ensure_packages(PROJECT_PACKAGES[module])
+            if module == 'weather' and 'locale' not in self.selected:
+                available = self.read(['locale', '-a']).lower().replace('-', '').splitlines()
+                if 'zh_cn.utf8' not in available:
+                    self.run(['sudo', sys.executable, ROOT / 'modules/locales-root.py',
+                              '--profile', self.profile, '--user', pwd.getpwuid(os.getuid()).pw_name,
+                              '--generate-only'])
+            source = self.prepared[module]
+            entry = 'appearance.py' if module == 'appearance' else 'project.py'
+            argv = [sys.executable, source / entry, 'setup']
+            if module == 'appearance':
+                argv.append('--skip-deps')
+            self.run(argv)
+        else:
+            self.extension(module)
+
+    def apply(self):
+        self.preflight()
+        base = Path(os.environ.get('XDG_STATE_HOME', str(Path.home() / '.local/state'))) / 'desktop-reinstall'
+        base.mkdir(parents=True, exist_ok=True)
+        with (base / 'install.lock').open('a') as lock:
+            try:
+                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                raise ValueError('另一个安装流程正在运行。')
+            self.state = base / ('run-' + datetime.datetime.now().strftime('%Y%m%d-%H%M%S-%f'))
+            self.state.mkdir(mode=0o700)
+            self.save()
+            try:
+                with tempfile.TemporaryDirectory(prefix='desktop-reinstall-') as temp:
+                    # Resolve all selected source archives before removing/installing packages.
+                    self.prepare(temp)
+                    for module in self.selected:
+                        self.record['current'] = module
+                        self.save()
+                        print('\n执行：' + MODULES[module], flush=True)
+                        self.execute(module)
+                        self.record['completed'].append(module)
+                        self.save()
+                self.record['status'] = 'READY'
+            except BaseException as error:
+                self.record['status'] = 'FAILED'
+                self.record['error'] = str(error)
+                self.save()
+                print('执行记录：' + str(self.state), file=sys.stderr)
+                raise
+            self.save()
+            print('READY：所选模块已完成。记录：' + str(self.state))
+            if set(self.selected) & (GUI_MODULES | {'docker'}):
+                print('请保存工作后注销并重新登录，加载语言、扩展和新增的组权限。')
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    modes = parser.add_mutually_exclusive_group()
+    modes.add_argument('--plan', action='store_true', help='仅查看计划（默认）')
+    modes.add_argument('--apply', action='store_true', help='实际执行选择的模块')
+    modes.add_argument('--check', action='store_true', help='只检查目标系统与桌面会话')
+    modes.add_argument('--list', action='store_true', help='列出模块')
+    parser.add_argument('--only', help='逗号分隔的模块或分组')
+    parser.add_argument('--skip', help='从本次选择中排除模块或分组')
+    parser.add_argument('--profile', type=Path, default=ROOT / 'profiles/debian13.json')
+    parser.add_argument('--common', type=Path, default=ROOT / 'profiles/common.json')
+    args = parser.parse_args(argv)
+    if args.list:
+        for name, title in MODULES.items():
+            print(name.ljust(14) + title)
+        print('分组：environment=docker,fnm,uv；apps=tools,weather；extensions=lunar,monitor,dock,appindicator')
+        return 0
+    edition, common = load(args.profile), load(args.common)
+    selected = select_modules(common, args.only, args.skip)
+    for module in selected:
+        print(module.ljust(14) + MODULES[module])
+        if module in PROJECTS:
+            project = common['projects'][PROJECTS[module]]
+            print('  ' + project['repository'] + ' @ ' + project['commit'][:12])
+    installer = Installer(edition, common, selected, args.profile)
+    if args.apply:
+        installer.apply()
+    elif args.check:
+        installer.preflight()
+        print('检查通过，未执行安装。')
+    else:
+        print('仅预览。实际安装请添加 --apply。')
+    return 0
+
+
+if __name__ == '__main__':
+    try:
+        sys.exit(main())
+    except (ValueError, OSError, RuntimeError, subprocess.CalledProcessError, SyntaxError, KeyError, TypeError) as error:
+        print('停止：' + str(error), file=sys.stderr)
+        sys.exit(1)
