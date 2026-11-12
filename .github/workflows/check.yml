@@ -18,7 +18,7 @@ jobs:
       - name: Unit tests without installing software
         run: python -m unittest discover -s tests -v
       - name: Shell syntax
-        run: bash -n install.sh && bash -n environment/install.sh && bash -n environment/install-docker-debian.sh && bash -n environment/install-docker-arch.sh
+        run: sh -n install.sh && bash -n install.sh && bash -n environment/install.sh && bash -n environment/install-docker-debian.sh && bash -n environment/install-docker-arch.sh
       - name: Read-only module preview
         run: |
           ./install.sh --list

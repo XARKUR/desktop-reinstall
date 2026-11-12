@@ -1,6 +1,12 @@
 # Arch GNOME 完整安装
 
-起点为已安装并登录 GNOME 48 / 51 的 Arch Linux x86_64 桌面，需要 Python、sudo 和联网。以普通桌面用户运行：
+起点为已安装并登录 GNOME 48 / 51 的 Arch Linux x86_64 桌面，需要 curl、Python、sudo 和联网。可直接打开模块菜单：
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/XARKUR/desktop-reinstall/main/install.sh | sh
+```
+
+自动识别系统，输入编号选择模块，`p` 预览、`i` 安装、`q` 退出。已有源码时，以普通桌面用户运行：
 
 ```sh
 ./install.sh                              # 只显示完整计划

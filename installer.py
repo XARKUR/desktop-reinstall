@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Modular GNOME setup: Debian 13 workflow, Arch cleanup and locale. Default: read-only plan."""
+"""Modular Debian 13 / Arch GNOME setup. Default local action: read-only plan."""
 import argparse
 import ast
+import contextlib
 import datetime
 import fcntl
 import json
@@ -380,6 +381,93 @@ class Installer:
                 print('请保存工作后注销并重新登录，加载语言、扩展和新增的组权限。')
 
 
+def show_plan(common, selected):
+    for module in selected:
+        print(module.ljust(14) + MODULES[module])
+        if module in PROJECTS:
+            project = common['projects'][PROJECTS[module]]
+            print('  ' + project['repository'] + ' @ ' + project['commit'][:12])
+
+
+def menu_selection(value):
+    names = list(MODULES)
+    result = set()
+    for token in re.split(r'[,\s]+', value.strip().lower().replace('，', ',')):
+        if not token:
+            continue
+        if re.fullmatch(r'\d+(?:-\d+)?', token):
+            bounds = list(map(int, token.split('-')))
+            first, last = bounds[0], bounds[-1]
+            if not 1 <= first <= last <= len(names):
+                raise ValueError('模块编号需要在 1～' + str(len(names)) + ' 之间，范围从小到大。')
+            result.update(names[first - 1:last])
+        else:
+            result.update(expand(token))
+    return result
+
+
+def run_menu(edition, common, profile, only=None, skip=None, terminal=None):
+    # Reject a wrong system before showing a menu, while allowing environment-only
+    # choices without requiring an active GUI session at this point.
+    Installer(edition, common, [], profile).preflight()
+    excluded = expand(skip) if skip is not None else set()
+    selected = (expand(only) if only is not None else set()) - excluded
+    if terminal is None:
+        try:
+            terminal = open('/dev/tty', 'r', encoding='utf-8')
+        except OSError:
+            raise ValueError('模块菜单需要终端；请在桌面终端运行，或用 --plan 查看计划。')
+        context = terminal
+    else:
+        context = contextlib.nullcontext(terminal)
+    with context as input_device:
+        print('\n已识别：' + edition['name'] + ' x86_64')
+        print('输入编号切换选择，可用空格、逗号或范围（例如 1 2 7-10）。默认不选任何模块。')
+        print('也可输入模块名或分组：environment、apps、extensions。')
+        while True:
+            print()
+            for number, (name, label) in enumerate(MODULES.items(), 1):
+                mark = '-' if name in excluded else 'x' if name in selected else ' '
+                print(f'{number:2}. [{mark}] {name:<13} {label}')
+            print('\na/all 全选 · r/recommended 推荐 · c/clear 清空 · p/plan 预览 · i/install 安装 · q/quit 退出')
+            print('选择模块 / 操作：', end='', flush=True)
+            line = input_device.readline()
+            if not line:
+                print('\n已取消，未执行安装。')
+                return 0
+            command = line.strip().lower()
+            if command in ('q', 'quit', '0'):
+                print('已退出，未执行安装。')
+                return 0
+            if command in ('a', 'all'):
+                selected = set(MODULES) - excluded
+            elif command in ('r', 'recommended'):
+                selected = defaults(common) - excluded
+            elif command in ('c', 'clear'):
+                selected.clear()
+            elif command in ('p', 'plan', 'i', 'install'):
+                if not selected:
+                    print('请先选择需要的模块。')
+                    continue
+                ordered = [name for name in MODULES if name in selected]
+                print('\n本次选择：')
+                show_plan(common, ordered)
+                if command in ('p', 'plan'):
+                    print('仅预览，未执行安装。')
+                else:
+                    print('开始执行所选模块，需要时会提示输入管理员密码。', flush=True)
+                    Installer(edition, common, ordered, profile).apply()
+                    return 0
+            elif command:
+                try:
+                    changes = menu_selection(command)
+                    if changes & excluded:
+                        raise ValueError('本次 --skip 已排除：' + ', '.join(sorted(changes & excluded)))
+                    selected.symmetric_difference_update(changes)
+                except ValueError as error:
+                    print('未更改选择：' + str(error))
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     modes = parser.add_mutually_exclusive_group()
@@ -387,6 +475,7 @@ def main(argv=None):
     modes.add_argument('--apply', action='store_true', help='实际执行选择的模块')
     modes.add_argument('--check', action='store_true', help='只检查目标系统与桌面会话')
     modes.add_argument('--list', action='store_true', help='列出模块')
+    modes.add_argument('--menu', action='store_true', help='从终端交互选择模块，按 i 才安装')
     parser.add_argument('--only', help='逗号分隔的模块或分组')
     parser.add_argument('--skip', help='从本次选择中排除模块或分组')
     parser.add_argument('--profile', type=Path, help='配置文件；默认按当前系统选择 Debian 13 / Arch')
@@ -402,12 +491,10 @@ def main(argv=None):
         name = 'arch' if platform.freedesktop_os_release().get('ID') == 'arch' else 'debian13'
         profile = ROOT / 'profiles' / (name + '.json')
     edition, common = load(profile), load(args.common)
+    if args.menu:
+        return run_menu(edition, common, profile, args.only, args.skip)
     selected = select_modules(common, args.only, args.skip)
-    for module in selected:
-        print(module.ljust(14) + MODULES[module])
-        if module in PROJECTS:
-            project = common['projects'][PROJECTS[module]]
-            print('  ' + project['repository'] + ' @ ' + project['commit'][:12])
+    show_plan(common, selected)
     installer = Installer(edition, common, selected, profile)
     if args.apply:
         installer.apply()
@@ -422,6 +509,9 @@ def main(argv=None):
 if __name__ == '__main__':
     try:
         sys.exit(main())
+    except KeyboardInterrupt:
+        print('\n已取消。', file=sys.stderr)
+        sys.exit(130)
     except (ValueError, OSError, RuntimeError, subprocess.CalledProcessError, SyntaxError, KeyError, TypeError) as error:
         print('停止：' + str(error), file=sys.stderr)
         sys.exit(1)

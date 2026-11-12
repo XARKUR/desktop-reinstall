@@ -6,11 +6,30 @@ Debian 13 和 Arch Linux x86_64 均已接入清理、中文输入、基础工具
 
 ## 使用
 
-克隆项目（需要 Git），或从 [GitHub 下载 ZIP](https://github.com/XARKUR/desktop-reinstall/archive/refs/heads/main.zip) 并解压，然后进入项目目录。入口默认只预览，不安装或清理任何东西。
+直接在普通用户的 GNOME 桌面终端运行（不要在整条命令前加 sudo）：
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/XARKUR/desktop-reinstall/main/install.sh | sh
+```
+
+入口自动识别 Debian 13 或 Arch Linux x86_64，下载程序后显示模块菜单，不需要先安装 Git。需要已有 curl、Python 3 和 sudo。
+
+菜单默认不选任何模块：输入编号切换选择，例如 `1 2 7-10`，也可以输入模块名或分组。`a` 全选，`r` 选择推荐配置，`c` 清空，`p` 只预览，`i` 执行当前选择，`q` 退出。按回车不会自动安装；只有输入 `i` 才开始执行。
+
+菜单和后续命令通过终端接收输入，不会把管道中的脚本内容当成回答。下载文件在结束或失败后清理，安装状态、缓存与备份仍保存到下文列出的位置。
+
+也可以克隆项目或 [下载 ZIP](https://github.com/XARKUR/desktop-reinstall/archive/refs/heads/main.zip) 后使用：
 
 ```sh
 git clone https://github.com/XARKUR/desktop-reinstall.git
 cd desktop-reinstall
+./install.sh --menu              # 打开同一个模块选择菜单
+```
+
+本地直接运行 `./install.sh` 仍默认只预览。无需交互的远程预览也可以传参数：
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/XARKUR/desktop-reinstall/main/install.sh | sh -s -- --plan --only environment
 ```
 
 新系统需要联网访问 Debian、GitHub 与 Docker 官方源；本项目不配置网络代理。

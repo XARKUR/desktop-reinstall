@@ -1,7 +1,7 @@
 {
   "scope": "Debian 13 and Arch Linux x86_64 modular GNOME desktop workflow",
   "automated_tests": {
-    "passed": 36,
+    "passed": 45,
     "system_operations": "mocked; locale file writes redirected to temporary directory",
     "target_python": "Tests also passed on Arch Python 3.14.10."
   },
@@ -242,5 +242,18 @@
     "system_failed_units": 0,
     "user_failed_units": 0,
     "visual_confirmation": "User reviewed the desktop; the reported activities-icon overlap was fixed and confirmed resolved in normal, hover and overview use."
+  },
+  "interactive_bootstrap": {
+    "menu": "explicit module selection, preview, install or cancel",
+    "pipe_input": "controlling terminal used instead of piped stdin",
+    "automated_checks": [
+      "number/name/group selection",
+      "cancel/EOF/invalid choices never install",
+      "skip constraints",
+      "Debian13/Arch platform detection",
+      "child receives terminal stdin",
+      "unsafe archive paths rejected"
+    ],
+    "live_menu_tests": "pending"
   }
 }
