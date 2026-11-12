@@ -23,4 +23,4 @@ jobs:
         run: |
           ./install.sh --list
           ./install.sh --only environment,lunar --skip docker
-          ./install.sh --profile profiles/arch.json --only cleanup
+          ./install.sh --profile profiles/arch.json --only cleanup,locale

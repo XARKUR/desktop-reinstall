@@ -89,7 +89,37 @@
       "ibus",
       "ibus-libpinyin",
       "noto-fonts-cjk",
+      "noto-fonts-emoji",
+      "glibc",
+      "accountsservice"
+    ]
+  },
+  "localization": {
+    "language": "zh_CN.UTF-8",
+    "generated_locales": [
+      "zh_CN.UTF-8",
+      "en_US.UTF-8"
+    ],
+    "packages": [
+      "glibc",
+      "glib2",
+      "accountsservice",
+      "ibus",
+      "ibus-libpinyin",
+      "noto-fonts-cjk",
       "noto-fonts-emoji"
+    ],
+    "input_framework": "IBus",
+    "input_method": "智能拼音（libpinyin）",
+    "input_sources": [
+      [
+        "xkb",
+        "us"
+      ],
+      [
+        "ibus",
+        "libpinyin"
+      ]
     ]
   }
 }

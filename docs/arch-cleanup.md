@@ -1,6 +1,6 @@
 # Arch GNOME 清理清单
 
-实际清理已接入统一入口；Arch 当前仅开放 `cleanup` 模块。
+实际清理已接入统一入口；Arch 当前开放 `cleanup` 和 `locale` 模块；中文输入见 [配置说明](arch-locale.md)。
 
 在 Arch 系统的项目目录中运行：
 

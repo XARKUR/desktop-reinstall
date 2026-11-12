@@ -1,7 +1,7 @@
 {
-  "scope": "Debian 13 x86_64 GNOME modular installer and Arch Linux x86_64 cleanup",
+  "scope": "Debian 13 x86_64 GNOME modular installer and Arch Linux x86_64 cleanup/localization",
   "automated_tests": {
-    "passed": 27,
+    "passed": 31,
     "system_operations": "mocked; locale file writes redirected to temporary directory",
     "target_python": "Tests also passed on Arch Python 3.14.10."
   },
@@ -124,5 +124,39 @@
     "wayland_session": "active",
     "repeat_preview": "no remaining targets",
     "actual_removal_executed": true
+  },
+  "arch_locale_execution": {
+    "status": "READY",
+    "gnome_version": "51.1",
+    "python_version": "3.14.10",
+    "generated_locales": [
+      "en_US.utf8",
+      "zh_CN.utf8"
+    ],
+    "desktop_language_after_relogin": "zh_CN.UTF-8",
+    "account_language": "zh_CN.UTF-8",
+    "region": "zh_CN.UTF-8",
+    "input_sources": [
+      [
+        "xkb",
+        "us"
+      ],
+      [
+        "ibus",
+        "libpinyin"
+      ]
+    ],
+    "ibus_engine_registered_after_relogin": true,
+    "switch_input_source": "Super+Space",
+    "packages": {
+      "ibus": "1.5.34-2",
+      "ibus-libpinyin": "1.16.5-5",
+      "noto-fonts-cjk": "20240730-1",
+      "noto-fonts-emoji": "1:20260924-1"
+    },
+    "package_database_audit": "passed",
+    "user_failed_units": 0,
+    "calendar_and_clocks_retained": true,
+    "physical_typing_confirmation": "not captured; engine registration and desktop settings verified"
   }
 }

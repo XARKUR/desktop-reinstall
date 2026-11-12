@@ -110,10 +110,11 @@ class ArchCleanupTests(unittest.TestCase):
             obj.execute('cleanup')
         self.assertEqual(run.call_args.args[0][2], ROOT / 'modules/cleanup-arch.py')
 
-    def test_arch_default_selects_only_cleanup_and_never_executes_commands(self):
+    def test_arch_default_selects_cleanup_and_locale_without_executing_commands(self):
         with patch.object(installer.platform, 'freedesktop_os_release', return_value={'ID':'arch'}), \
              patch('subprocess.run', side_effect=AssertionError('mutation')), \
              contextlib.redirect_stdout(io.StringIO()) as output:
             self.assertEqual(installer.main([]), 0)
         self.assertIn('cleanup', output.getvalue())
+        self.assertIn('locale', output.getvalue())
         self.assertNotIn('docker ', output.getvalue())

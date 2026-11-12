@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Modular GNOME setup: Debian 13 workflow and Arch cleanup. Default: read-only plan."""
+"""Modular GNOME setup: Debian 13 workflow, Arch cleanup and locale. Default: read-only plan."""
 import argparse
 import ast
 import datetime
@@ -108,12 +108,12 @@ class Installer:
         if arch:
             if release.get('ID') != 'arch' or platform.machine() != 'x86_64':
                 raise ValueError('Arch 配置需要在 Arch Linux x86_64 上执行。')
-            if set(self.selected) != {'cleanup'}:
-                raise ValueError('Arch 当前只接入 cleanup；请使用 --only cleanup。')
+            if set(self.selected) - {'cleanup', 'locale'}:
+                raise ValueError('Arch 当前只接入 cleanup、locale；请用 --only 选择。')
         elif (release.get('ID') != 'debian' or release.get('VERSION_ID') != '13'
               or platform.machine() != 'x86_64' or self.edition.get('os_id') != 'debian'
               or self.edition.get('version_id') != '13'):
-            raise ValueError('实际执行适用于 Debian 13 x86_64，或 Arch 的 cleanup 模块。')
+            raise ValueError('实际执行适用于 Debian 13 x86_64，或 Arch 的 cleanup、locale 模块。')
         for name in (['sudo', 'pacman'] if arch else ['sudo', 'apt-get', 'dpkg-query']):
             if not shutil.which(name):
                 raise ValueError('缺少系统命令：' + name)
@@ -158,6 +158,14 @@ class Installer:
         if not all(re.fullmatch(r'[a-z0-9][a-z0-9+.-]*', name) for name in packages):
             raise ValueError('包名无效。')
         if not packages:
+            return
+        if self.edition.get('os_id') == 'arch':
+            installed = set(self.read(['pacman', '-Qq']).splitlines())
+            missing = [name for name in packages if name not in installed]
+            if missing:
+                # Use the existing repository snapshot; never refresh it alone with -Sy.
+                self.read(['pacman', '-Si', '--', *missing])
+                self.run(['sudo', 'pacman', '-S', '--needed', '--noconfirm', '--', *missing])
             return
         query = subprocess.run(['dpkg-query', '-W', '-f=${binary:Package} ${db:Status-Abbrev}\n', *packages],
                                capture_output=True, text=True, env=self.environment)
@@ -323,10 +331,10 @@ def main(argv=None):
         name = 'arch' if platform.freedesktop_os_release().get('ID') == 'arch' else 'debian13'
         profile = ROOT / 'profiles' / (name + '.json')
     edition, common = load(profile), load(args.common)
-    only = 'cleanup' if edition.get('os_id') == 'arch' and args.only is None else args.only
+    only = 'cleanup,locale' if edition.get('os_id') == 'arch' and args.only is None else args.only
     selected = select_modules(common, only, args.skip)
     if edition.get('os_id') == 'arch':
-        print('Arch 当前支持 cleanup，其他安装模块尚未接入。')
+        print('Arch 当前支持 cleanup、locale，其他安装模块尚未接入。')
     for module in selected:
         print(module.ljust(14) + MODULES[module])
         if module in PROJECTS:
