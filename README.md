@@ -70,7 +70,7 @@ Docker 组具有管理宿主系统的权限，可在公共配置中关闭 `add_u
 
 只选天气而不选中文模块时，会按需要生成中文 locale 和安装字体，以支持天气应用的中文界面，但不会修改当前用户的界面语言。中文模块按新装 GNOME 的原生 IBus 配置；已有自定义输入框架应先自行检查。
 
-显卡驱动、turing-unlock、额外应用、系统安装和系统升级由各自流程处理。Arch 配置与旧的 `plan.py arch` 预览仍保留，**这个执行入口仅用于 Debian 13**。
+显卡驱动、turing-unlock、额外应用、系统安装和系统升级由各自流程处理。Arch 的清理清单已整理，可用 `python3 plan.py arch --installed` 做只读模拟，详见 [Arch 清理说明](docs/arch-cleanup.md)。**这个执行入口仅用于 Debian 13**。
 
 ## 来源、记录和重试
 

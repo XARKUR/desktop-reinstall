@@ -1,7 +1,7 @@
 {
   "scope": "Debian 13 x86_64 GNOME modular installer",
   "automated_tests": {
-    "passed": 16,
+    "passed": 19,
     "system_operations": "mocked; locale file writes redirected to temporary directory"
   },
   "syntax_checks": [
@@ -54,5 +54,38 @@
   "fresh_debian13_end_to_end_installation_executed": false,
   "limits": [
     "Archive fetching and tests do not replace installation on a fresh Debian 13 GNOME system."
-  ]
+  ],
+  "arch_cleanup_preview": {
+    "mode": "print-only",
+    "packages": [
+      "decibels",
+      "gnome-characters",
+      "gnome-connections",
+      "gnome-contacts",
+      "gnome-font-viewer",
+      "gnome-logs",
+      "gnome-maps",
+      "gnome-music",
+      "gnome-software",
+      "gnome-tour",
+      "gnome-user-docs",
+      "gnome-user-share",
+      "gnome-weather",
+      "malcontent",
+      "rygel",
+      "showtime",
+      "simple-scan",
+      "snapshot",
+      "vim",
+      "yelp"
+    ],
+    "count": 20,
+    "installed_bytes": 132082677,
+    "extra_removals": [],
+    "calendar_retained": true,
+    "clocks_retained": true,
+    "installed_package_list_unchanged": true,
+    "required_dependency_removal_rejected_in_print_mode": true,
+    "actual_removal_executed": false
+  }
 }
