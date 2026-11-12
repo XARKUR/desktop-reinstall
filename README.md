@@ -1,8 +1,8 @@
-# Debian 13 GNOME 桌面安装流程
+# GNOME 桌面重装流程
 
 把个人重装流程串成一个入口：清理默认应用 → 中文和输入法 → 基础工具 → 开发环境 → 外观 → 天气与扩展。可以整套执行，也可以只选需要的模块。
 
-适用于**已安装并登录 GNOME 的 Debian 13 x86_64 桌面**，需要联网、Python 3、sudo，以及当前用户的管理员权限。桌面组件支持已验证的 GNOME 48 / 51；Debian 13 默认是 48。请在自己的桌面终端以普通用户运行，需要管理员权限时才会提示输入密码。
+Debian 13 x86_64 已接入完整模块流程；Arch Linux x86_64 当前已接入实际清理模块，其余模块尚未接入。需要 Python 3、sudo，以及当前用户的管理员权限；安装桌面组件时需要已登录 GNOME，会下载资源的模块需要联网。桌面组件支持已验证的 GNOME 48 / 51；Debian 13 默认是 48。请在自己的桌面终端以普通用户运行，需要管理员权限时才会提示输入密码。
 
 ## 使用
 
@@ -19,7 +19,7 @@ cd desktop-reinstall
 ./install.sh                       # 查看整套计划
 ./install.sh --list                # 查看模块名称
 ./install.sh --check               # 只检查系统和桌面会话
-./install.sh --apply               # 执行全部默认模块
+./install.sh --apply               # Debian 执行默认模块；Arch 目前只执行清理
 ```
 
 按模块选择时，用逗号分隔。先省略 `--apply` 查看本次选择，确认内容后再加上它。
@@ -33,7 +33,17 @@ cd desktop-reinstall
 ./install.sh --apply --skip cleanup,docker
 ```
 
-参数顺序不改变执行次序。所选模块统一按下表顺序执行，每个模块自动补齐自己的系统依赖。
+参数顺序不改变执行次序。下表为 Debian 的完整模块清单，每个模块自动补齐自己的系统依赖。Arch 当前仅开放 `cleanup`，选择其他模块会在修改系统前停止。
+
+在 Arch 上清理：
+
+```sh
+./install.sh --check --only cleanup
+python3 modules/cleanup-arch.py     # 实际查询当前包并模拟删除
+./install.sh --apply --only cleanup
+```
+
+入口默认按当前系统选择配置，也可通过 `--profile profiles/arch.json` 显式指定。
 
 ## 模块
 
@@ -70,7 +80,7 @@ Docker 组具有管理宿主系统的权限，可在公共配置中关闭 `add_u
 
 只选天气而不选中文模块时，会按需要生成中文 locale 和安装字体，以支持天气应用的中文界面，但不会修改当前用户的界面语言。中文模块按新装 GNOME 的原生 IBus 配置；已有自定义输入框架应先自行检查。
 
-显卡驱动、turing-unlock、额外应用、系统安装和系统升级由各自流程处理。Arch 的清理清单已整理，可用 `python3 plan.py arch --installed` 做只读模拟，详见 [Arch 清理说明](docs/arch-cleanup.md)。**这个执行入口仅用于 Debian 13**。
+显卡驱动、turing-unlock、额外应用、系统安装和系统升级由各自流程处理。Arch 清理已接入统一入口，详见 [Arch 清理说明](docs/arch-cleanup.md)。其他 Arch 模块尚未接入。
 
 ## 来源、记录和重试
 
@@ -82,7 +92,8 @@ Docker 组具有管理宿主系统的权限，可在公共配置中关闭 `add_u
 - fnm / uv 二进制与 Bash 备份：`~/.local/state/desktop-reinstall/environment-*/`。
 - locale 与账户语言文件备份：`/var/backups/desktop-reinstall/locale-*/`。
 - Docker 源文件备份和安装版本：`/var/backups/desktop-environment-*/`。
-- 外观与各扩展还会使用自身项目的备份目录。清理模块在执行时显示自己的日志目录。
+- Arch 清理前后的包清单、实际移除项及日志：`/var/log/desktop-reinstall/arch-cleanup-*/`，需要管理员权限读取。
+- 外观与各扩展还会使用自身项目的备份目录。Debian 清理模块在执行时显示自己的日志目录。
 
 总流程记录不等于系统快照，也不保存终端完整输出。需要完整安装日志时，可以自行保存终端输出。
 
@@ -90,7 +101,7 @@ Docker 组具有管理宿主系统的权限，可在公共配置中关闭 `add_u
 
 已做参数选择、只读预览、失败停止、依赖补齐、清理保护、locale 文件生成、发行版扩展 UUID 和归档路径检查，并通过模拟系统操作测试整套模块调度。四个固定提交的源码已实际下载、解包并核对入口。
 
-本次仅开发与验证脚本，**未在本机执行安装、清理或升级，也尚未在一台全新 Debian 13 上连续执行整套安装**。此前独立组件的测试记录保留在相应项目及 `environment/VALIDATION.json`。
+**尚未在一台全新 Debian 13 上连续执行整套安装**。Arch 已实际完成 20 个目标包的清理，并核对日历、时钟、包数据库和桌面服务；这仅验证已接入的清理模块，不代表其余安装模块已经完成适配。此前独立组件的测试记录保留在相应项目及 `environment/VALIDATION.json`。
 
 开发检查：
 

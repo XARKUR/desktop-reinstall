@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Modular Debian 13 GNOME reinstall workflow. Default action is a read-only plan."""
+"""Modular GNOME setup: Debian 13 workflow and Arch cleanup. Default: read-only plan."""
 import argparse
 import ast
 import datetime
@@ -104,13 +104,19 @@ class Installer:
         if os.geteuid() == 0:
             raise ValueError('请以 GNOME 桌面用户运行整个入口，需要时脚本会调用 sudo。')
         release = platform.freedesktop_os_release()
-        if release.get('ID') != 'debian' or release.get('VERSION_ID') != '13' or platform.machine() != 'x86_64':
-            raise ValueError('实际执行适用于 Debian 13 x86_64。其他系统可以查看计划。')
-        for name in ['sudo', 'apt-get', 'dpkg-query']:
+        arch = self.edition.get('os_id') == 'arch'
+        if arch:
+            if release.get('ID') != 'arch' or platform.machine() != 'x86_64':
+                raise ValueError('Arch 配置需要在 Arch Linux x86_64 上执行。')
+            if set(self.selected) != {'cleanup'}:
+                raise ValueError('Arch 当前只接入 cleanup；请使用 --only cleanup。')
+        elif (release.get('ID') != 'debian' or release.get('VERSION_ID') != '13'
+              or platform.machine() != 'x86_64' or self.edition.get('os_id') != 'debian'
+              or self.edition.get('version_id') != '13'):
+            raise ValueError('实际执行适用于 Debian 13 x86_64，或 Arch 的 cleanup 模块。')
+        for name in (['sudo', 'pacman'] if arch else ['sudo', 'apt-get', 'dpkg-query']):
             if not shutil.which(name):
                 raise ValueError('缺少系统命令：' + name)
-        if self.edition.get('os_id') != 'debian' or self.edition.get('version_id') != '13':
-            raise ValueError('请选择 Debian 13 配置。')
         if set(self.selected) & GUI_MODULES:
             bus = Path('/run/user') / str(os.getuid()) / 'bus'
             if not self.environment.get('DBUS_SESSION_BUS_ADDRESS'):
@@ -227,7 +233,8 @@ class Installer:
 
     def execute(self, module):
         if module == 'cleanup':
-            self.run(['sudo', sys.executable, ROOT / 'modules/cleanup.py', '--profile', self.profile, '--apply'])
+            script = 'cleanup-arch.py' if self.edition.get('os_id') == 'arch' else 'cleanup.py'
+            self.run(['sudo', sys.executable, ROOT / 'modules' / script, '--profile', self.profile, '--apply'])
         elif module == 'locale':
             self.locale()
         elif module == 'tools':
@@ -303,7 +310,7 @@ def main(argv=None):
     modes.add_argument('--list', action='store_true', help='列出模块')
     parser.add_argument('--only', help='逗号分隔的模块或分组')
     parser.add_argument('--skip', help='从本次选择中排除模块或分组')
-    parser.add_argument('--profile', type=Path, default=ROOT / 'profiles/debian13.json')
+    parser.add_argument('--profile', type=Path, help='配置文件；默认按当前系统选择 Debian 13 / Arch')
     parser.add_argument('--common', type=Path, default=ROOT / 'profiles/common.json')
     args = parser.parse_args(argv)
     if args.list:
@@ -311,14 +318,21 @@ def main(argv=None):
             print(name.ljust(14) + title)
         print('分组：environment=docker,fnm,uv；apps=tools,weather；extensions=lunar,monitor,dock,appindicator')
         return 0
-    edition, common = load(args.profile), load(args.common)
-    selected = select_modules(common, args.only, args.skip)
+    profile = args.profile
+    if profile is None:
+        name = 'arch' if platform.freedesktop_os_release().get('ID') == 'arch' else 'debian13'
+        profile = ROOT / 'profiles' / (name + '.json')
+    edition, common = load(profile), load(args.common)
+    only = 'cleanup' if edition.get('os_id') == 'arch' and args.only is None else args.only
+    selected = select_modules(common, only, args.skip)
+    if edition.get('os_id') == 'arch':
+        print('Arch 当前支持 cleanup，其他安装模块尚未接入。')
     for module in selected:
         print(module.ljust(14) + MODULES[module])
         if module in PROJECTS:
             project = common['projects'][PROJECTS[module]]
             print('  ' + project['repository'] + ' @ ' + project['commit'][:12])
-    installer = Installer(edition, common, selected, args.profile)
+    installer = Installer(edition, common, selected, profile)
     if args.apply:
         installer.apply()
     elif args.check:
