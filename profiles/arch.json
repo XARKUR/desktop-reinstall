@@ -5,6 +5,7 @@
   "cleanup": {
     "remove_exact": [
       "decibels",
+      "epiphany",
       "evolution",
       "gnome-characters",
       "gnome-connections",
@@ -50,6 +51,7 @@
       "gnome-terminal",
       "ptyxis",
       "firefox",
+      "google-chrome",
       "gnome-calculator",
       "gnome-disk-utility",
       "gnome-system-monitor",
@@ -70,7 +72,6 @@
       "gnome-calendar",
       "gnome-clocks",
       "gnome-tweaks",
-      "epiphany",
       "libmalcontent",
       "tecla",
       "polkit",
@@ -149,7 +150,7 @@
       "show-weekdate": "true"
     },
     "org.gnome.shell": {
-      "favorite-apps": "['org.gnome.Epiphany.desktop', 'org.gnome.Nautilus.desktop', 'org.gnome.TextEditor.desktop', 'org.gnome.Calculator.desktop', 'org.gnome.Console.desktop']"
+      "favorite-apps": "['org.gnome.Nautilus.desktop', 'org.gnome.TextEditor.desktop', 'org.gnome.Calculator.desktop', 'org.gnome.Console.desktop']"
     }
   },
   "monitor_auto_gpu": true
