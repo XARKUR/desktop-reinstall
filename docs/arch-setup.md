@@ -40,6 +40,8 @@ curl -fsSL https://raw.githubusercontent.com/XARKUR/desktop-reinstall/main/insta
 
 Arch 保留原生 Console，以及自行安装的 Firefox、Google Chrome；GNOME 默认的“网页”（Epiphany）列入清理名单。浏览器安装不包含在清理模块中，不批量复制其他设备上的应用启动项。硬件驱动由基础系统或对应的独立项目管理，不在通用流程中安装 NVIDIA 驱动。
 
+窗口标题栏右侧显示最小化、最大化和关闭按钮，由 `org.gnome.desktop.wm.preferences button-layout` 设置，不需要额外扩展。这个设置随“基础工具和桌面偏好”（`tools`）模块应用；可在 GNOME“优化”的窗口标题栏页面调整。应用自行绘制的特殊标题栏可能有自己的按钮布局。
+
 ## 偏好与重复运行
 
 外观与 Dock 会应用清单中的配置。农历和监控的初始偏好仅在首次安装时应用；后续安装保留已有用户偏好。监控发现脚本只在设备列表为空时初始化当前机器的 GPU，不包含固定显卡名称、卡号或其他设备的路径。已有设备选择保留。新装的系统会重新发现硬件。
