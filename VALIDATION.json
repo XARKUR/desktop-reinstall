@@ -301,5 +301,36 @@
       "installed_package_list_unchanged": true
     },
     "configuration": "No automatic server/client configuration, pairing, certificate transfer or launch."
+  },
+  "arch_browser_replacement": {
+    "result": "READY",
+    "removed": [
+      "epiphany"
+    ],
+    "installed": [
+      "google-chrome 157.0.8103.78-1",
+      "libxss",
+      "ttf-liberation"
+    ],
+    "source": "Google official dl.google.com package, repackaged with reviewed AUR google-chrome recipe",
+    "aur_commit": "63ed6ea00f0bb4e4fcd9275f1da27b1390c838ba",
+    "source_checksums": "makepkg SHA-512 verification passed",
+    "package_sha256": "f00e5c96ad9f05f46e5b7f9bb99dcd00cc791d7db2de811656d6a7c7aa69fc75",
+    "default_browser": "google-chrome.desktop",
+    "dock": "Epiphany entry replaced with Chrome; other favorites preserved",
+    "other_package_versions_unchanged": true,
+    "calendar_clock_and_gnome_preserved": true,
+    "package_database_check": "passed",
+    "repeat_cleanup": "no remaining targets",
+    "arch_workflow_tests": {
+      "passed": 19,
+      "platforms": [
+        "local Python",
+        "Arch Python 3.14"
+      ]
+    },
+    "limits": [
+      "Interactive web browsing not tested. Chrome installation is a separate operation, not a module of the unified installer."
+    ]
   }
 }

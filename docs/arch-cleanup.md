@@ -39,6 +39,8 @@ python3 modules/cleanup-arch.py     # 只读模拟
 
 ## 执行验证
 
-已在 Arch Linux / GNOME 51.1 / Python 3.14 上实际移除上述 20 个包。脚本核对实际删除项与目标完全一致，其余已安装包的版本未变化，日历、时钟和保护组件保留；包数据库检查通过，系统与用户服务均无失败项，Wayland 会话继续运行。重复模拟时已无待清理项。
+已在 Arch Linux / GNOME 51.1 / Python 3.14 上实际移除上述 20 个包。脚本核对实际删除项与目标完全一致，其余已安装包的版本未变化，日历、时钟和保护组件保留；包数据库检查通过，系统与用户服务均无失败项，Wayland 会话继续运行。
+
+之后另行安装 Google Chrome 稳定版，再单独移除 `epiphany`，并核对默认浏览器、Dock 图标、日历与时钟，以及包数据库。除新增 Chrome、`libxss`、`ttf-liberation` 和移除 Epiphany 外，其他软件包版本未变化。Chrome 来源为 Google 官方下载文件，使用已检查的 AUR `google-chrome` 脚本打包；这个替换过程属于独立实测，不表示统一安装器已包含 Chrome 安装模块。更新后的清理模块重复模拟时已无待清理项。
 
 自动测试还覆盖保护名单误改、额外删除、执行失败记录和平台入口隔离。验证结果见仓库根目录 `VALIDATION.json`。

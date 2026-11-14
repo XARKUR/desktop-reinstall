@@ -38,7 +38,7 @@ curl -fsSL https://raw.githubusercontent.com/XARKUR/desktop-reinstall/main/insta
 | 托盘 | Arch 官方 gnome-shell-extension-appindicator，UUID 为 appindicatorsupport@rgcjonas.gmail.com |
 | Deskflow | 官方仓库 deskflow 包，保留已有连接配置和证书 |
 
-Arch 保留原生 Console 和现有浏览器，不批量复制其他设备上的应用启动项。硬件驱动由基础系统或对应的独立项目管理，不在通用流程中安装 NVIDIA 驱动。
+Arch 保留原生 Console，以及自行安装的 Firefox、Google Chrome；GNOME 默认的“网页”（Epiphany）列入清理名单。浏览器安装不包含在清理模块中，不批量复制其他设备上的应用启动项。硬件驱动由基础系统或对应的独立项目管理，不在通用流程中安装 NVIDIA 驱动。
 
 ## 偏好与重复运行
 
