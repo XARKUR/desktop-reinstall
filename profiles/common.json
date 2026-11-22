@@ -33,12 +33,13 @@
     },
     "Gnome Monitor": {
       "repository": "XARKUR/gnome-monitor",
-      "commit": "67787cbf45381bcd4868eb351bdd69a2b6543d43",
+      "commit": "2865683c9059d403b3c00f93c1304ff72a3d782f",
       "includes": [
         "顶栏资源监控",
         "AMD / Intel 自动型号识别",
         "NVIDIA 指标（需要 nvidia-smi）",
-        "PCI 地址识别 GPU，避免 DRM 编号变化导致数据错配"
+        "PCI 地址识别 GPU，避免 DRM 编号变化导致数据错配",
+        "显存默认 GiB，独立于全局数据单位"
       ],
       "uuid": "resource-monitor@system.local",
       "schema": "org.gnome.shell.extensions.system-resource-monitor",
