@@ -27,11 +27,12 @@
       },
       "Gnome Monitor": {
         "repository": "XARKUR/gnome-monitor",
-        "commit": "c282e4dbbd4b7a258b1a51a69eb01eaaf481f8c8",
+        "commit": "67787cbf45381bcd4868eb351bdd69a2b6543d43",
         "includes": [
           "顶栏资源监控",
           "AMD / Intel 自动型号识别",
-          "NVIDIA 指标（需要 nvidia-smi）"
+          "NVIDIA 指标（需要 nvidia-smi）",
+          "PCI 地址识别 GPU，避免 DRM 编号变化导致数据错配"
         ],
         "uuid": "resource-monitor@system.local",
         "schema": "org.gnome.shell.extensions.system-resource-monitor",
@@ -332,5 +333,11 @@
     "limits": [
       "Interactive web browsing not tested. Chrome installation is a separate operation, not a module of the unified installer."
     ]
+  },
+  "monitor_pci_identity_update": {
+    "version": 6,
+    "source_commit": "67787cbf45381bcd4868eb351bdd69a2b6543d43",
+    "checks": "Monitor project syntax, schema, migration/reordering regression tests and real Arch PCI sysfs sampling passed.",
+    "runtime": "Updated Arch disk installation; current session corrected separately; new Shell login pending."
   }
 }
